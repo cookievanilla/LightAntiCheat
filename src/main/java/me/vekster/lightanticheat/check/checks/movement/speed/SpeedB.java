@@ -54,8 +54,7 @@ public class SpeedB extends MovementCheck implements Listener {
                 time - cache.lastStrongKbVelocity > 2500 && time - cache.lastStrongAirKbVelocity > 5000 &&
                 time - cache.lastFlight > 1000 &&
                 time - cache.lastGliding > 750 && time - cache.lastRiptiding > 1500 &&
-                time - cache.lastWindCharge > 750 && time - cache.lastWindChargeReceive > 875 &&
-                time - cache.lastWindBurst > 500 && time - cache.lastWindBurstNotVanilla > 1000;
+                !hasRecent121MobilityBoost(cache, time, false);
     }
 
     @EventHandler
