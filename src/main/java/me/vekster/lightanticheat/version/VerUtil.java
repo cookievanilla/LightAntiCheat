@@ -394,7 +394,7 @@ public class VerUtil {
             if (key == null) continue;
             enchantments.put(key.toLowerCase(), enchantment);
         }
-        VerUtil.enchantment = new VerEnumValues<>(enchantments, Enchantment.LUCK);
+        VerUtil.enchantment = new VerEnumValues<>(enchantments, Enchantment.LUCK_OF_THE_SEA);
         Scheduler.runTask(false, () -> {
             Map<String, Enchantment> newerEnchantments = new HashMap<>();
             for (Enchantment enchantment : Enchantment.values()) {
@@ -403,7 +403,7 @@ public class VerUtil {
                 if (key == null) continue;
                 newerEnchantments.put(key.toLowerCase(), enchantment);
             }
-            VerUtil.enchantment = new VerEnumValues<>(newerEnchantments, Enchantment.LUCK);
+            VerUtil.enchantment = new VerEnumValues<>(newerEnchantments, Enchantment.LUCK_OF_THE_SEA);
         });
 
         Map<String, EntityType> entityTypes = new HashMap<>();

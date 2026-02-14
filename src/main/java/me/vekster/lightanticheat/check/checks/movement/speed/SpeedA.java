@@ -131,8 +131,8 @@ public class SpeedA extends MovementCheck implements Listener {
             if (speedEffectAmplifier > 2)
                 maxSpeed *= 1.35;
         }
-        if (getEffectAmplifier(cache, PotionEffectType.JUMP) > 0) {
-            maxSpeed *= getEffectAmplifier(cache, PotionEffectType.JUMP) * 0.25 + 1;
+        if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) > 0) {
+            maxSpeed *= getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) * 0.25 + 1;
         }
         if (getEffectAmplifier(cache, VerUtil.potions.get("LEVITATION")) > 0) {
             maxSpeed *= getEffectAmplifier(cache, VerUtil.potions.get("LEVITATION")) * 0.20 + 1;
@@ -359,7 +359,7 @@ public class SpeedA extends MovementCheck implements Listener {
             if (speedEffectAmplifier > 2)
                 maxSpeed *= 1.3;
         }
-        int justBoostEffectAmplifier = getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP);
+        int justBoostEffectAmplifier = getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP_BOOST);
         if (justBoostEffectAmplifier > 0) {
             maxSpeed *= justBoostEffectAmplifier * 0.35 + 1;
             if (justBoostEffectAmplifier > 2)
@@ -407,7 +407,7 @@ public class SpeedA extends MovementCheck implements Listener {
         if (getEffectAmplifier(lacPlayer.cache, PotionEffectType.SPEED) > 5 ||
                 getEffectAmplifier(lacPlayer.cache, VerUtil.potions.get("LEVITATION")) > 0 ||
                 getEffectAmplifier(lacPlayer.cache, VerUtil.potions.get("SLOW_FALLING")) > 1 ||
-                getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP) > 5) {
+                getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP_BOOST) > 5) {
             Buffer buffer = getBuffer(player, true);
             long currentTime = System.currentTimeMillis();
             buffer.put("airEffectTime", currentTime);

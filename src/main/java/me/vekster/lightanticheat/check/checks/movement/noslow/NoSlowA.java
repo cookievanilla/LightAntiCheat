@@ -131,7 +131,7 @@ public class NoSlowA extends MovementCheck implements Listener {
             return;
 
         if (getEffectAmplifier(lacPlayer.cache, VerUtil.potions.get("LEVITATION")) > 0 ||
-                getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP) > 5) {
+                getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP_BOOST) > 5) {
             Buffer buffer = getBuffer(player, true);
             long currentTime = System.currentTimeMillis();
             buffer.put("effectTime", currentTime);
