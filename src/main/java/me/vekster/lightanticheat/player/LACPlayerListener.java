@@ -65,7 +65,23 @@ public class LACPlayerListener implements Listener {
         });
     }
 
+    private static LACPlayer getInitializedLacPlayer(Player player) {
+        if (!player.isOnline())
+            return null;
+
+        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
+        if (lacPlayer != null && lacPlayer.cache != null)
+            return lacPlayer;
+
+        loadLacPlayer(player);
+        lacPlayer = LACPlayer.getLacPlayer(player);
+        return lacPlayer != null && lacPlayer.cache != null ? lacPlayer : null;
+    }
+
     private static void loadLacPlayer(Player player) {
+        if (!player.isOnline())
+            return;
+
         UUID uuid = player.getUniqueId();
 
         if (!LACPlayer.PLAYERS.containsKey(uuid)) {
@@ -341,47 +357,71 @@ public class LACPlayerListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void lastBlockPlace(LACPlayerPlaceBlockEvent event) {
         Player player = event.getPlayer();
-        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
-        lacPlayer.cache.lastBlockPlace = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        Scheduler.entityThread(player, () -> {
+            LACPlayer lacPlayer = getInitializedLacPlayer(player);
+            if (lacPlayer == null) return;
+            lacPlayer.cache.lastBlockPlace = now;
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void lastBlockBreak(LACPlayerBreakBlockEvent event) {
         Player player = event.getPlayer();
-        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
-        lacPlayer.cache.lastBlockBreak = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        Scheduler.entityThread(player, () -> {
+            LACPlayer lacPlayer = getInitializedLacPlayer(player);
+            if (lacPlayer == null) return;
+            lacPlayer.cache.lastBlockBreak = now;
+        });
     }
 
     @EventHandler
     public void lastTeleport(PlayerTeleportEvent event) {
         if (CheckUtil.isExternalNPC(event)) return;
         Player player = event.getPlayer();
-        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
-        lacPlayer.cache.lastTeleport = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        Scheduler.entityThread(player, () -> {
+            LACPlayer lacPlayer = getInitializedLacPlayer(player);
+            if (lacPlayer == null) return;
+            lacPlayer.cache.lastTeleport = now;
+        });
     }
 
     @EventHandler
     public void lastWorldChange(PlayerChangedWorldEvent event) {
         if (CheckUtil.isExternalNPC(event)) return;
         Player player = event.getPlayer();
-        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
-        lacPlayer.cache.lastWorldChange = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        Scheduler.entityThread(player, () -> {
+            LACPlayer lacPlayer = getInitializedLacPlayer(player);
+            if (lacPlayer == null) return;
+            lacPlayer.cache.lastWorldChange = now;
+        });
     }
 
     @EventHandler
     public void lastGamemodeChange(PlayerGameModeChangeEvent event) {
         if (CheckUtil.isExternalNPC(event)) return;
         Player player = event.getPlayer();
-        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
-        lacPlayer.cache.lastGamemodeChange = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        Scheduler.entityThread(player, () -> {
+            LACPlayer lacPlayer = getInitializedLacPlayer(player);
+            if (lacPlayer == null) return;
+            lacPlayer.cache.lastGamemodeChange = now;
+        });
     }
 
     @EventHandler
     public void lastRespawn(PlayerRespawnEvent event) {
         if (CheckUtil.isExternalNPC(event)) return;
         Player player = event.getPlayer();
-        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
-        lacPlayer.cache.lastRespawn = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        Scheduler.entityThread(player, () -> {
+            LACPlayer lacPlayer = getInitializedLacPlayer(player);
+            if (lacPlayer == null) return;
+            lacPlayer.cache.lastRespawn = now;
+        });
     }
 
     @EventHandler
