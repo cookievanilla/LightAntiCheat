@@ -75,8 +75,7 @@ public class FlightA extends MovementCheck implements Listener {
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 15 * 1000 &&
                 time - cache.lastFlight > 750 &&
                 time - cache.lastGliding > 2000 && time - cache.lastRiptiding > 3500 &&
-                time - cache.lastWindCharge > 1000 && time - cache.lastWindChargeReceive > 500 &&
-                time - cache.lastWindBurst > 1500 && time - cache.lastWindBurstNotVanilla > 4000;
+                !hasRecent121MobilityBoost(cache, time, true);
     }
 
     @EventHandler

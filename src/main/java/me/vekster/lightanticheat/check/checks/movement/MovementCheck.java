@@ -11,6 +11,7 @@ import me.vekster.lightanticheat.util.cooldown.CooldownUtil;
 import me.vekster.lightanticheat.util.hook.plugin.simplehook.EnchantsSquaredHook;
 import me.vekster.lightanticheat.version.VerPlayer;
 import me.vekster.lightanticheat.version.VerUtil;
+import me.vekster.lightanticheat.version.identifier.VerIdentifier;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -53,6 +54,26 @@ public abstract class MovementCheck extends Check {
         if (VerPlayer.getPing(player) > 500 && (currentTime - cache.lastGliding < 3000 || currentTime - cache.lastRiptiding < 4000))
             return true;
         return false;
+    }
+
+
+    protected boolean hasRecent121MobilityBoost(PlayerCache cache, long time, boolean strict) {
+        int windChargeWindow = strict ? 1000 : 500;
+        int windChargeReceiveWindow = strict ? 750 : 500;
+        int windBurstWindow = strict ? 1500 : 500;
+        int windBurstCustomWindow = strict ? 4000 : 1000;
+
+        if (VerIdentifier.isAtLeastMinecraft(1, 21, 11)) {
+            windChargeWindow += strict ? 350 : 250;
+            windChargeReceiveWindow += strict ? 350 : 250;
+            windBurstWindow += strict ? 500 : 250;
+            windBurstCustomWindow += strict ? 750 : 500;
+        }
+
+        return time - cache.lastWindCharge <= windChargeWindow ||
+                time - cache.lastWindChargeReceive <= windChargeReceiveWindow ||
+                time - cache.lastWindBurst <= windBurstWindow ||
+                time - cache.lastWindBurstNotVanilla <= windBurstCustomWindow;
     }
 
     public boolean isLagGlidingPossible(Player player, Buffer buffer, int requiredAccuracy) {
