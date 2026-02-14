@@ -416,14 +416,18 @@ public class VerUtil {
         Map<String, PotionEffectType> potions = new HashMap<>();
         for (PotionEffectType potionEffectType : PotionEffectType.values()) {
             if (potionEffectType == null) continue;
-            potions.put(potionEffectType.getName().toLowerCase(), potionEffectType);
+            String potionName = potionEffectType.getName();
+            if (potionName == null) continue;
+            potions.put(potionName.toLowerCase(), potionEffectType);
         }
         VerUtil.potions = new VerEnumValues<>(potions, PotionEffectType.NIGHT_VISION);
         Scheduler.runTask(false, () -> {
             Map<String, PotionEffectType> newerPotions = new HashMap<>();
             for (PotionEffectType potionEffectType : PotionEffectType.values()) {
                 if (potionEffectType == null) continue;
-                newerPotions.put(potionEffectType.getName().toLowerCase(), potionEffectType);
+                String potionName = potionEffectType.getName();
+                if (potionName == null) continue;
+                newerPotions.put(potionName.toLowerCase(), potionEffectType);
             }
             VerUtil.potions = new VerEnumValues<>(newerPotions, PotionEffectType.NIGHT_VISION);
         });
