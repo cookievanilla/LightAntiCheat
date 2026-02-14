@@ -138,20 +138,20 @@ public class JumpA extends MovementCheck implements Listener {
             return false;
 
         if (getEffectAmplifier(cache, PotionEffectType.LEVITATION) > 0 ||
-                getEffectAmplifier(cache, PotionEffectType.JUMP) > 2)
+                getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) > 2)
             return false;
 
         double velocity = player.getVelocity().getY();
         double vSpeed = distanceVertical(from, to);
-        if (getEffectAmplifier(cache, PotionEffectType.JUMP) == 0) {
+        if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) == 0) {
             if (!(velocity < 0.42 * 1.1 && vSpeed > 0.42 * 1.35 ||
                     vSpeed > 0.42 * 2.55))
                 return false;
-        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP) == 1) {
+        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) == 1) {
             if (!(velocity < 0.52 * 1.1 && vSpeed > 0.52 * 1.35 ||
                     vSpeed > 0.52 * 2.55))
                 return false;
-        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP) == 2) {
+        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) == 2) {
             if (!(velocity < 0.621 * 1.1 && vSpeed > 0.621 * 1.35 ||
                     vSpeed > 0.621 * 2.55))
                 return false;
@@ -176,18 +176,18 @@ public class JumpA extends MovementCheck implements Listener {
             return false;
 
         if (getEffectAmplifier(cache, VerUtil.potions.get("LEVITATION")) > 0 ||
-                getEffectAmplifier(cache, PotionEffectType.JUMP) > 2)
+                getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) > 2)
             return false;
 
         double velocity = player.getVelocity().getY();
         double vSpeed = distanceVertical(from, to);
-        if (getEffectAmplifier(cache, PotionEffectType.JUMP) == 0) {
+        if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) == 0) {
             if (!(velocity < 0.42 * 1.05 && vSpeed > 0.42 * 1.9))
                 return false;
-        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP) == 1) {
+        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) == 1) {
             if (!(velocity < 0.52 * 1.05 && vSpeed > 0.52 * 1.9))
                 return false;
-        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP) == 2) {
+        } else if (getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) == 2) {
             if (!(velocity < 0.621 * 1.05 && vSpeed > 0.621 * 1.9))
                 return false;
         }

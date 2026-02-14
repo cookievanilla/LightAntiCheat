@@ -16,7 +16,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -80,8 +80,7 @@ public class BoatA extends MovementCheck implements Listener {
             return;
         }
 
-        if (boat.getType() != EntityType.BOAT &&
-                !boat.getType().name().equalsIgnoreCase("CHEST_BOAT")) {
+        if (!(boat instanceof Boat)) {
             buffer.put("boatFlightEvents", 0);
             return;
         }
@@ -210,8 +209,7 @@ public class BoatA extends MovementCheck implements Listener {
             return;
         }
 
-        if (boat.getType() != EntityType.BOAT &&
-                !boat.getType().name().equalsIgnoreCase("CHEST_BOAT")) {
+        if (!(boat instanceof Boat)) {
             buffer.put("boatSpeedEvents", 0);
             buffer.put("previousLocation", event.getFrom());
             return;

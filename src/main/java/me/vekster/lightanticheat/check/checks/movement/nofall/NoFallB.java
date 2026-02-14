@@ -129,7 +129,7 @@ public class NoFallB extends MovementCheck implements Listener {
             return;
 
         updateDownBlocks(player, lacPlayer, event.getToDownBlocks());
-        int jumpEffectAmplifier = getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP);
+        int jumpEffectAmplifier = getEffectAmplifier(lacPlayer.cache, PotionEffectType.JUMP_BOOST);
         Scheduler.runTask(true, () -> {
             if (jumpEffectAmplifier <= 2) callViolationEventIfRepeat(player, lacPlayer, null, buffer, 3000);
             else callViolationEventIfRepeat(player, lacPlayer, null, buffer, 600);

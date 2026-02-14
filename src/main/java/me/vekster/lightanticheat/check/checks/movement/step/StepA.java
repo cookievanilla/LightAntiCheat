@@ -66,7 +66,7 @@ public class StepA extends MovementCheck implements Listener {
 
         if (getEffectAmplifier(cache, VerUtil.potions.get("LEVITATION")) > 0 ||
                 getEffectAmplifier(cache, VerUtil.potions.get("SLOW_FALLING")) > 1 ||
-                getEffectAmplifier(cache, PotionEffectType.JUMP) > 2)
+                getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST) > 2)
             return;
 
         double vSpeed = distanceVertical(event.getFrom(), event.getTo());

@@ -94,7 +94,7 @@ public class JumpB extends MovementCheck implements Listener {
             return;
         }
 
-        int jumpEffectAmplifier = getEffectAmplifier(cache, PotionEffectType.JUMP);
+        int jumpEffectAmplifier = getEffectAmplifier(cache, PotionEffectType.JUMP_BOOST);
         if (getEffectAmplifier(cache, VerUtil.potions.get("LEVITATION")) > 0 ||
                 jumpEffectAmplifier > 5) {
             buffer.put("jumpHeight", 0.0);
