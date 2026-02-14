@@ -57,7 +57,8 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release.set(8)
+    // Paper 1.21.x требует Java 21, поэтому и таргетим 21
+    options.release.set(21)
 }
 
 processResources {
