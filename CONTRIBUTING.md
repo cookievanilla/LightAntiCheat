@@ -6,7 +6,7 @@ LightAntiCheat is happy that you want to contribute to the project! We are alway
 
 ## Requirements
 To get started PRing changes you will need to have the following installed/condition met:
-- Java 8 JDK or later (21 is recommented because your changes have to work on EVERY version)
+- Java 21 JDK (required for building against Paper/Folia 1.21.11 API)
 - Git (obviously)
 - Hardware capable of running a Minecraft server with Paper, Spigot, Folia on different versions
 
