@@ -58,22 +58,32 @@ public abstract class MovementCheck extends Check {
 
 
     protected boolean hasRecent121MobilityBoost(PlayerCache cache, long time, boolean strict) {
-        int windChargeWindow = strict ? 1000 : 500;
-        int windChargeReceiveWindow = strict ? 750 : 500;
-        int windBurstWindow = strict ? 1500 : 500;
-        int windBurstCustomWindow = strict ? 4000 : 1000;
+        if (strict)
+            return hasRecent121MobilityBoost(cache, time, 1000, 500, 1500, 4000);
+        return hasRecent121MobilityBoost(cache, time, 500, 750, 500, 1000);
+    }
+
+    protected boolean hasRecent121MobilityBoost(PlayerCache cache, long time,
+                                                int windChargeWindow,
+                                                int windChargeReceiveWindow,
+                                                int windBurstWindow,
+                                                int windBurstCustomWindow) {
+        int adjustedWindChargeWindow = windChargeWindow;
+        int adjustedWindChargeReceiveWindow = windChargeReceiveWindow;
+        int adjustedWindBurstWindow = windBurstWindow;
+        int adjustedWindBurstCustomWindow = windBurstCustomWindow;
 
         if (VerIdentifier.isAtLeastMinecraft(1, 21, 11)) {
-            windChargeWindow += strict ? 350 : 250;
-            windChargeReceiveWindow += strict ? 350 : 250;
-            windBurstWindow += strict ? 500 : 250;
-            windBurstCustomWindow += strict ? 750 : 500;
+            adjustedWindChargeWindow += 250;
+            adjustedWindChargeReceiveWindow += 250;
+            adjustedWindBurstWindow += 250;
+            adjustedWindBurstCustomWindow += 500;
         }
 
-        return time - cache.lastWindCharge <= windChargeWindow ||
-                time - cache.lastWindChargeReceive <= windChargeReceiveWindow ||
-                time - cache.lastWindBurst <= windBurstWindow ||
-                time - cache.lastWindBurstNotVanilla <= windBurstCustomWindow;
+        return time - cache.lastWindCharge <= adjustedWindChargeWindow ||
+                time - cache.lastWindChargeReceive <= adjustedWindChargeReceiveWindow ||
+                time - cache.lastWindBurst <= adjustedWindBurstWindow ||
+                time - cache.lastWindBurstNotVanilla <= adjustedWindBurstCustomWindow;
     }
 
     public boolean isLagGlidingPossible(Player player, Buffer buffer, int requiredAccuracy) {
