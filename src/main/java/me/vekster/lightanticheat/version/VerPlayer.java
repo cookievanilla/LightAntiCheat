@@ -52,10 +52,19 @@ public class VerPlayer {
                 if (value instanceof Integer)
                     return (int) value;
             }
-            return player.spigot().getPing();
-        } catch (Throwable throwable) {
+
+            Class<?> craftPlayerClass = ReflectionUtil.classForName("org.bukkit.craftbukkit.$version.entity.CraftPlayer");
+            Object craftPlayer = craftPlayerClass.cast(player);
+            Object entityPlayer = ReflectionUtil.runDeclaredMethod(craftPlayer, "getHandle");
+            if (entityPlayer == null)
+                return 250;
+            Object result = ReflectionUtil.getDeclaredField(entityPlayer, "ping");
+            if (result instanceof Integer)
+                return (int) result;
+        } catch (ReflectionException | RuntimeException | LinkageError ignored) {
             return 250;
         }
+        return 250;
     }
 
     public static int getPing(Player player) {
