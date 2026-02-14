@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class VerUtil {
     protected static MultiVersion multiVersion = null;
@@ -53,6 +54,11 @@ public class VerUtil {
         }
     }
 
+
+
+    public static UUID getPlayerUniqueId(Player player) {
+        return player.getUniqueId();
+    }
 
     private static <T> void alias(Map<String, T> values, String canonicalKey, String... aliases) {
         T value = values.get(canonicalKey.toLowerCase());
