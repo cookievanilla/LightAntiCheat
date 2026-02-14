@@ -60,6 +60,39 @@ tasks.withType(JavaCompile).configureEach {
     options.release.set(8)
 }
 
+tasks.register('verifyModernBukkitSymbols') {
+    doLast {
+        def forbidden = [
+                'Material.GRASS',
+                'PotionEffectType.FAST_DIGGING',
+                'PotionEffectType.JUMP',
+                'EntityType.BOAT',
+                'EntityType.PRIMED_TNT',
+                'Enchantment.ARROW_KNOCKBACK',
+                'Enchantment.LUCK'
+        ]
+
+        def violations = []
+        fileTree('src/main/java').matching { include '**/*.java' }.files.each { file ->
+            def text = file.getText('UTF-8')
+            forbidden.each { symbol ->
+                def regex = java.util.regex.Pattern.quote(symbol)
+                if (text =~ /\b${regex}\b/) {
+                    violations << "${file}: ${symbol}"
+                }
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new GradleException('Found removed Bukkit API symbols:\n' + violations.join('\n'))
+        }
+    }
+}
+
+tasks.named('compileJava') {
+    dependsOn(tasks.named('verifyModernBukkitSymbols'))
+}
+
 processResources {
     def props = [version: version]
     inputs.properties props
