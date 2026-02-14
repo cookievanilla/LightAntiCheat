@@ -53,6 +53,48 @@ public class VerUtil {
         }
     }
 
+
+    private static <T> void alias(Map<String, T> values, String canonicalKey, String... aliases) {
+        T value = values.get(canonicalKey.toLowerCase());
+        if (value == null)
+            return;
+        for (String alias : aliases) {
+            if (alias == null)
+                continue;
+            values.putIfAbsent(alias.toLowerCase(), value);
+        }
+    }
+
+    private static void registerMaterialAliases(Map<String, Material> materials) {
+        alias(materials, "trial_spawner", "ominous_trial_spawner");
+        alias(materials, "vault", "ominous_vault");
+        alias(materials, "trial_key", "ominous_trial_key");
+        alias(materials, "eyeblossom", "open_eyeblossom", "closed_eyeblossom");
+        alias(materials, "moss_carpet", "pale_moss_carpet");
+        alias(materials, "hanging_moss", "pale_hanging_moss");
+        alias(materials, "chain", "iron_chain", "copper_chain");
+        alias(materials, "iron_chain", "chain", "copper_chain");
+        alias(materials, "music_disc_creator_music_box", "music_disc_creator");
+    }
+
+    private static void registerEntityAliases(Map<String, EntityType> entityTypes) {
+        alias(entityTypes, "bogged", "parched");
+        alias(entityTypes, "husk", "camel_husk");
+        alias(entityTypes, "ghast", "happy_ghast", "ghastling");
+        alias(entityTypes, "drowned", "zombie_nautilus", "coral_zombie_nautilus");
+        alias(entityTypes, "iron_golem", "copper_golem");
+        alias(entityTypes, "breeze", "nautilus");
+    }
+
+    private static void registerPotionAliases(Map<String, PotionEffectType> potions) {
+        alias(potions, "bad_omen", "raid_omen", "trial_omen");
+        alias(potions, "wind_charged", "wind_charge");
+    }
+
+    private static void registerEnchantmentAliases(Map<String, Enchantment> enchantments) {
+        alias(enchantments, "breach", "lunge");
+    }
+
     static {
         LACVersion lacVersion = VerIdentifier.getVersion();
         switch (lacVersion) {
@@ -365,6 +407,7 @@ public class VerUtil {
             if (material == null) continue;
             materials.put(material.name().toLowerCase(), material);
         }
+        registerMaterialAliases(materials);
         VerUtil.material = new VerEnumValues<>(materials, Material.MAP);
 
         Map<String, Enchantment> enchantments = new HashMap<>();
@@ -374,6 +417,7 @@ public class VerUtil {
             if (key == null) continue;
             enchantments.put(key.toLowerCase(), enchantment);
         }
+        registerEnchantmentAliases(enchantments);
         VerUtil.enchantment = new VerEnumValues<>(enchantments, Enchantment.LUCK);
         Scheduler.runTask(false, () -> {
             Map<String, Enchantment> newerEnchantments = new HashMap<>();
@@ -383,6 +427,7 @@ public class VerUtil {
                 if (key == null) continue;
                 newerEnchantments.put(key.toLowerCase(), enchantment);
             }
+            registerEnchantmentAliases(newerEnchantments);
             VerUtil.enchantment = new VerEnumValues<>(newerEnchantments, Enchantment.LUCK);
         });
 
@@ -391,6 +436,7 @@ public class VerUtil {
             if (entityType == null) continue;
             entityTypes.put(entityType.name().toLowerCase(), entityType);
         }
+        registerEntityAliases(entityTypes);
         VerUtil.entityTypes = new VerEnumValues<>(entityTypes, EntityType.UNKNOWN);
 
         Map<String, PotionEffectType> potions = new HashMap<>();
@@ -398,6 +444,7 @@ public class VerUtil {
             if (potionEffectType == null) continue;
             potions.put(potionEffectType.getName().toLowerCase(), potionEffectType);
         }
+        registerPotionAliases(potions);
         VerUtil.potions = new VerEnumValues<>(potions, PotionEffectType.NIGHT_VISION);
         Scheduler.runTask(false, () -> {
             Map<String, PotionEffectType> newerPotions = new HashMap<>();
@@ -405,6 +452,7 @@ public class VerUtil {
                 if (potionEffectType == null) continue;
                 newerPotions.put(potionEffectType.getName().toLowerCase(), potionEffectType);
             }
+            registerPotionAliases(newerPotions);
             VerUtil.potions = new VerEnumValues<>(newerPotions, PotionEffectType.NIGHT_VISION);
         });
     }
