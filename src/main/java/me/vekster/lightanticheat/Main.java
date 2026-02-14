@@ -64,6 +64,7 @@ import me.vekster.lightanticheat.util.player.cps.CPSListener;
 import me.vekster.lightanticheat.util.tps.TPSCalculator;
 import me.vekster.lightanticheat.util.updater.Updater;
 import me.vekster.lightanticheat.util.violation.ViolationHandler;
+import me.vekster.lightanticheat.version.identifier.VerIdentifier;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -81,6 +82,12 @@ public class Main extends JavaPlugin {
         instance = this;
         FoliaUtil.loadFoliaUtil();
         ConfigManager.loadConfig();
+
+        int[] mcVersion = VerIdentifier.getMinecraftVersion();
+        getLogger().info("Detected Minecraft version: " + mcVersion[0] + "." + mcVersion[1] + "." + mcVersion[2]);
+        if (FoliaUtil.isFolia() && !VerIdentifier.isAtLeastMinecraft(1, 21, 11)) {
+            getLogger().warning("Folia detected below 1.21.11; best compatibility tuning is validated for Folia 1.21.11+");
+        }
 
         Buffer.loadBufferCleaner(BUFFER_DURATION_MILS);
         TPSCalculator.loadTPSCalculator();
