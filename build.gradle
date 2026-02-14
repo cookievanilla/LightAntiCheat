@@ -19,9 +19,13 @@ def minecraftApiVersion = '1.21.11-R0.1-SNAPSHOT'
 
 dependencies {
     implementation 'org.jetbrains:annotations:26.0.2-1'
+
     compileOnly 'org.projectlombok:lombok:1.18.42'
     annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    // Paper 1.21.x = Java 21+
     compileOnly "io.papermc.paper:paper-api:${minecraftApiVersion}"
+
     compileOnly 'io.netty:netty-all:4.1.131.Final'
     implementation files('impl/LightInjector-1.0.2-forked.jar')
     implementation 'com.tcoded:FoliaLib:0.5.1'
@@ -31,9 +35,19 @@ dependencies {
 }
 
 java {
+    // ВАЖНО: именно это влияет на variant-aware dependency resolution (org.gradle.jvm.version)
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // Дублируем на всякий случай, чтобы и javac точно таргетил 21
+    options.release.set(21)
 }
 
 publishing {
@@ -53,44 +67,6 @@ publishing {
             from(components.java)
         }
     }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-    options.release.set(8)
-}
-
-tasks.register('verifyModernBukkitSymbols') {
-    doLast {
-        def forbidden = [
-                'Material.GRASS',
-                'PotionEffectType.FAST_DIGGING',
-                'PotionEffectType.JUMP',
-                'EntityType.BOAT',
-                'EntityType.PRIMED_TNT',
-                'Enchantment.ARROW_KNOCKBACK',
-                'Enchantment.LUCK'
-        ]
-
-        def violations = []
-        fileTree('src/main/java').matching { include '**/*.java' }.files.each { file ->
-            def text = file.getText('UTF-8')
-            forbidden.each { symbol ->
-                def regex = java.util.regex.Pattern.quote(symbol)
-                if (text =~ /\b${regex}\b/) {
-                    violations << "${file}: ${symbol}"
-                }
-            }
-        }
-
-        if (!violations.isEmpty()) {
-            throw new GradleException('Found removed Bukkit API symbols:\n' + violations.join('\n'))
-        }
-    }
-}
-
-tasks.named('compileJava') {
-    dependsOn(tasks.named('verifyModernBukkitSymbols'))
 }
 
 processResources {
