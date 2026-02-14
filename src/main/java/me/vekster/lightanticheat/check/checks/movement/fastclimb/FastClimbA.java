@@ -48,7 +48,8 @@ public class FastClimbA extends MovementCheck implements Listener {
                 time - cache.lastSlimeBlockVertical > 1000 && time - cache.lastSlimeBlockHorizontal > 1000 &&
                 time - cache.lastHoneyBlockVertical > 700 && time - cache.lastHoneyBlockHorizontal > 700 &&
                 time - cache.lastWasHit > 250 && time - cache.lastWasDamaged > 100 &&
-                time - cache.lastFlight > 750;
+                time - cache.lastFlight > 750 &&
+                !hasRecent121MobilityBoost(cache, time, false);
     }
 
     @EventHandler
