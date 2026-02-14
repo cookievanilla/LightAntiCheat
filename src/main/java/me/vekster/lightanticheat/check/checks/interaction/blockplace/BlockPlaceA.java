@@ -38,13 +38,9 @@ public class BlockPlaceA extends InteractionCheck implements Listener {
         Buffer buffer = getBuffer(event.getPlayer(), true);
         if (!flagSafe(event.getPlayer(), event.getLacPlayer(), event.getBlockWorld(), true)) {
             buffer.put("lastAsyncResult", false);
-            buffer.put("forceFlagAsync", false);
             return;
         }
-
-        boolean forceFlag = shouldForceFlagByAngle(event.getBlockX(), event.getBlockZ(), event.getEyeLocation());
         buffer.put("lastAsyncResult", true);
-        buffer.put("forceFlagAsync", forceFlag);
     }
 
     @EventHandler
@@ -60,7 +56,7 @@ public class BlockPlaceA extends InteractionCheck implements Listener {
         if (!flagSafe(player, lacPlayer, block.getWorld().getName(), false))
             return;
 
-        boolean forceFlag = buffer.getBoolean("forceFlagAsync") || shouldForceFlagByAngle(block.getX(), block.getZ(), eyeLocation);
+        boolean forceFlag = shouldForceFlagByAngle(block.getX(), block.getZ(), eyeLocation);
         boolean raytraceFlag = !forceFlag && executeRaytrace(player, block.getWorld().getName(), block.getX(), block.getZ(), block.getType(), buffer);
         if (!(forceFlag || raytraceFlag))
             return;
