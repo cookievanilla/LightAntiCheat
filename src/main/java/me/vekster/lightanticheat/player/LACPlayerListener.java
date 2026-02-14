@@ -79,6 +79,9 @@ public class LACPlayerListener implements Listener {
     }
 
     private static void loadLacPlayer(Player player) {
+        if (!player.isOnline())
+            return;
+
         UUID uuid = player.getUniqueId();
 
         if (!LACPlayer.PLAYERS.containsKey(uuid)) {
