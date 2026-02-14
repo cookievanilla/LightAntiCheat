@@ -19,10 +19,14 @@ def minecraftApiVersion = '1.21.11-R0.1-SNAPSHOT'
 
 dependencies {
     implementation 'org.jetbrains:annotations:26.0.2-1'
+
     compileOnly 'org.projectlombok:lombok:1.18.42'
     annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
     compileOnly "io.papermc.paper:paper-api:${minecraftApiVersion}"
+
     compileOnly 'io.netty:netty-all:4.1.131.Final'
+
     implementation files('impl/LightInjector-1.0.2-forked.jar')
     implementation 'com.tcoded:FoliaLib:0.5.1'
     compileOnly 'org.geysermc.floodgate:api:2.2.4-SNAPSHOT'
@@ -57,7 +61,7 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    // Paper 1.21.x требует Java 21, поэтому и таргетим 21
+    // Для paper-api 1.21.11 нужен таргет >= 21, иначе Gradle не выберет dependency-вариант
     options.release.set(21)
 }
 
