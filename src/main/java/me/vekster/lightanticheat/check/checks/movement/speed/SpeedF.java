@@ -38,7 +38,8 @@ public class SpeedF extends MovementCheck implements Listener {
                 time - cache.lastSlimeBlockVertical > 4000 && time - cache.lastSlimeBlockHorizontal > 3500 &&
                 time - cache.lastHoneyBlockVertical > 2000 && time - cache.lastHoneyBlockHorizontal > 1750 &&
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
-                time - cache.lastFlight > 1500;
+                time - cache.lastFlight > 1500 &&
+                !hasRecent121MobilityBoost(cache, time, false);
     }
 
     @EventHandler

@@ -59,7 +59,12 @@ public class PassableUtil extends GroundUtil {
         String typeName = material.name().toLowerCase();
         if (typeName.endsWith("_button") || typeName.endsWith("_pressure_plate") ||
                 typeName.endsWith("_banner") || typeName.endsWith("_rail") ||
-                typeName.endsWith("_sign") || typeName.endsWith("_sapling"))
+                typeName.endsWith("_sign") || typeName.endsWith("_sapling") ||
+                typeName.endsWith("_carpet") || typeName.endsWith("_coral_fan") ||
+                typeName.endsWith("_wall_fan") || typeName.endsWith("_hanging_moss") ||
+                typeName.endsWith("_moss_carpet") || typeName.endsWith("_eyeblossom") ||
+                typeName.equals("leaf_litter") || typeName.equals("wildflowers") ||
+                typeName.equals("short_dry_grass") || typeName.equals("tall_dry_grass"))
             return true;
         return false;
     }

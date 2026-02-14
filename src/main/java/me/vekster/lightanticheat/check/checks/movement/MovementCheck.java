@@ -11,6 +11,7 @@ import me.vekster.lightanticheat.util.cooldown.CooldownUtil;
 import me.vekster.lightanticheat.util.hook.plugin.simplehook.EnchantsSquaredHook;
 import me.vekster.lightanticheat.version.VerPlayer;
 import me.vekster.lightanticheat.version.VerUtil;
+import me.vekster.lightanticheat.version.identifier.VerIdentifier;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -53,6 +54,36 @@ public abstract class MovementCheck extends Check {
         if (VerPlayer.getPing(player) > 500 && (currentTime - cache.lastGliding < 3000 || currentTime - cache.lastRiptiding < 4000))
             return true;
         return false;
+    }
+
+
+    protected boolean hasRecent121MobilityBoost(PlayerCache cache, long time, boolean strict) {
+        if (strict)
+            return hasRecent121MobilityBoost(cache, time, 1000, 500, 1500, 4000);
+        return hasRecent121MobilityBoost(cache, time, 500, 750, 500, 1000);
+    }
+
+    protected boolean hasRecent121MobilityBoost(PlayerCache cache, long time,
+                                                int windChargeWindow,
+                                                int windChargeReceiveWindow,
+                                                int windBurstWindow,
+                                                int windBurstCustomWindow) {
+        int adjustedWindChargeWindow = windChargeWindow;
+        int adjustedWindChargeReceiveWindow = windChargeReceiveWindow;
+        int adjustedWindBurstWindow = windBurstWindow;
+        int adjustedWindBurstCustomWindow = windBurstCustomWindow;
+
+        if (VerIdentifier.isAtLeastMinecraft(1, 21, 11)) {
+            adjustedWindChargeWindow += 250;
+            adjustedWindChargeReceiveWindow += 250;
+            adjustedWindBurstWindow += 250;
+            adjustedWindBurstCustomWindow += 500;
+        }
+
+        return time - cache.lastWindCharge <= adjustedWindChargeWindow ||
+                time - cache.lastWindChargeReceive <= adjustedWindChargeReceiveWindow ||
+                time - cache.lastWindBurst <= adjustedWindBurstWindow ||
+                time - cache.lastWindBurstNotVanilla <= adjustedWindBurstCustomWindow;
     }
 
     public boolean isLagGlidingPossible(Player player, Buffer buffer, int requiredAccuracy) {

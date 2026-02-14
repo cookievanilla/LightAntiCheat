@@ -53,6 +53,25 @@ public class VerUtil {
         }
     }
 
+
+    private static <T> void alias(Map<String, T> values, String canonicalKey, String... aliases) {
+        T value = values.get(canonicalKey.toLowerCase());
+        if (value == null)
+            return;
+        for (String alias : aliases) {
+            if (alias == null)
+                continue;
+            values.putIfAbsent(alias.toLowerCase(), value);
+        }
+    }
+
+    private static void registerMaterialAliases(Map<String, Material> materials) {
+        // Keep only low-risk naming aliases for near-equivalent flora variants.
+        alias(materials, "eyeblossom", "open_eyeblossom", "closed_eyeblossom");
+        alias(materials, "moss_carpet", "pale_moss_carpet");
+        alias(materials, "hanging_moss", "pale_hanging_moss");
+    }
+
     static {
         LACVersion lacVersion = VerIdentifier.getVersion();
         switch (lacVersion) {
@@ -333,6 +352,7 @@ public class VerUtil {
                 };
                 break;
             case V1_20:
+            case V1_21:
                 multiVersion = new V1_20(Main.getInstance()) {
                     @Override
                     public void onBlockPlace(BlockPlaceEvent event) {
@@ -364,6 +384,7 @@ public class VerUtil {
             if (material == null) continue;
             materials.put(material.name().toLowerCase(), material);
         }
+        registerMaterialAliases(materials);
         VerUtil.material = new VerEnumValues<>(materials, Material.MAP);
 
         Map<String, Enchantment> enchantments = new HashMap<>();
@@ -395,14 +416,18 @@ public class VerUtil {
         Map<String, PotionEffectType> potions = new HashMap<>();
         for (PotionEffectType potionEffectType : PotionEffectType.values()) {
             if (potionEffectType == null) continue;
-            potions.put(potionEffectType.getName().toLowerCase(), potionEffectType);
+            String potionName = potionEffectType.getName();
+            if (potionName == null) continue;
+            potions.put(potionName.toLowerCase(), potionEffectType);
         }
         VerUtil.potions = new VerEnumValues<>(potions, PotionEffectType.NIGHT_VISION);
         Scheduler.runTask(false, () -> {
             Map<String, PotionEffectType> newerPotions = new HashMap<>();
             for (PotionEffectType potionEffectType : PotionEffectType.values()) {
                 if (potionEffectType == null) continue;
-                newerPotions.put(potionEffectType.getName().toLowerCase(), potionEffectType);
+                String potionName = potionEffectType.getName();
+                if (potionName == null) continue;
+                newerPotions.put(potionName.toLowerCase(), potionEffectType);
             }
             VerUtil.potions = new VerEnumValues<>(newerPotions, PotionEffectType.NIGHT_VISION);
         });

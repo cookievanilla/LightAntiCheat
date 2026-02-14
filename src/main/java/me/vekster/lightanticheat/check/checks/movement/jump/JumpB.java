@@ -54,8 +54,7 @@ public class JumpB extends MovementCheck implements Listener {
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 10 * 1000 &&
                 time - cache.lastFlight > 1200 &&
-                time - cache.lastWindCharge > 1000 && time - cache.lastWindChargeReceive > 500 &&
-                time - cache.lastWindBurst > 1500 && time - cache.lastWindBurstNotVanilla > 4000;
+                !hasRecent121MobilityBoost(cache, time, true);
     }
 
     @EventHandler

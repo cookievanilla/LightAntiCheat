@@ -9,6 +9,7 @@ version = '1.2.7'
 
 repositories {
     mavenCentral()
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
     // Config Updater
     maven { url 'https://oss.sonatype.org/content/groups/public/' }
     // Floodgate
@@ -17,14 +18,16 @@ repositories {
     maven { url 'https://nexuslite.gcnt.net/repos/other/' }
 }
 
+def minecraftApiVersion = '1.21.11-R0.1-SNAPSHOT'
+
 dependencies {
     // JetBrains Annotations
     implementation 'org.jetbrains:annotations:26.0.1'
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.38'
     annotationProcessor 'org.projectlombok:lombok:1.18.38'
-    // Spigot API
-    compileOnly files('comp/spigot-1.8.8-R0.1-SNAPSHOT-latest.jar')
+    // Minecraft API (Paper/Folia line)
+    compileOnly "io.papermc.paper:paper-api:${minecraftApiVersion}"
     // Netty
     compileOnly 'io.netty:netty-all:4.2.3.Final'
     // LightInjector
@@ -41,7 +44,7 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
@@ -67,6 +70,7 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release.set(8)
 }
 
 processResources {

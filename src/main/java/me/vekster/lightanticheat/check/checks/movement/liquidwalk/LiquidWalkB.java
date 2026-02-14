@@ -38,7 +38,8 @@ public class LiquidWalkB extends MovementCheck implements Listener {
                 time - cache.lastSlimeBlockVertical > 3000 && time - cache.lastSlimeBlockHorizontal > 2500 &&
                 time - cache.lastHoneyBlockVertical > 3000 && time - cache.lastHoneyBlockHorizontal > 3000 &&
                 time - cache.lastWasHit > 150 && time - cache.lastWasDamaged > 50 &&
-                time - cache.lastFlight > 750;
+                time - cache.lastFlight > 750 &&
+                !hasRecent121MobilityBoost(cache, time, false);
     }
 
     @EventHandler

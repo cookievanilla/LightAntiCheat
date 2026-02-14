@@ -45,7 +45,8 @@ public class NoFallB extends MovementCheck implements Listener {
                 time - cache.lastSlimeBlockVertical > 2500 && time - cache.lastSlimeBlockHorizontal > 2500 &&
                 time - cache.lastHoneyBlockVertical > 2500 && time - cache.lastHoneyBlockHorizontal > 2500 &&
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
-                time - cache.lastFlight > 750;
+                time - cache.lastFlight > 750 &&
+                !hasRecent121MobilityBoost(cache, time, true);
     }
 
     @EventHandler

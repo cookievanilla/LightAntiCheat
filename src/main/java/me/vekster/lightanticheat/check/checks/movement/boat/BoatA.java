@@ -54,7 +54,8 @@ public class BoatA extends MovementCheck implements Listener {
                 time - cache.lastWasHit > 300 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastKbVelocity > 250 && time - cache.lastAirKbVelocity > 500 &&
                 time - cache.lastStrongKbVelocity > 1250 && time - cache.lastStrongAirKbVelocity > 2500 &&
-                time - cache.lastFlight > 750;
+                time - cache.lastFlight > 750 &&
+                !hasRecent121MobilityBoost(cache, time, false);
     }
 
     @EventHandler

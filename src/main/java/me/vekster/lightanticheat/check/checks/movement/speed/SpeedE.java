@@ -53,7 +53,8 @@ public class SpeedE extends MovementCheck implements Listener {
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastKbVelocity > 250 && time - cache.lastAirKbVelocity > 500 &&
                 time - cache.lastStrongKbVelocity > 1250 && time - cache.lastStrongAirKbVelocity > 2500 &&
-                time - cache.lastFlight > 750;
+                time - cache.lastFlight > 750 &&
+                !hasRecent121MobilityBoost(cache, time, false);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -269,7 +270,8 @@ public class SpeedE extends MovementCheck implements Listener {
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastKbVelocity > 500 && time - cache.lastAirKbVelocity > 1000 &&
                 time - cache.lastStrongKbVelocity > 2500 && time - cache.lastStrongAirKbVelocity > 5000 &&
-                time - cache.lastFlight > 750;
+                time - cache.lastFlight > 750 &&
+                !hasRecent121MobilityBoost(cache, time, false);
         if (!isConditionAllowed)
             return;
 
