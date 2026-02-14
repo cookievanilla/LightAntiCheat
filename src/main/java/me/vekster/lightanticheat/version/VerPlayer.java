@@ -1,11 +1,8 @@
 package me.vekster.lightanticheat.version;
 
-import me.vekster.lightanticheat.Main;
 import me.vekster.lightanticheat.player.LACPlayer;
 import me.vekster.lightanticheat.util.annotation.SecureAsync;
 import me.vekster.lightanticheat.util.cooldown.CooldownUtil;
-import me.vekster.lightanticheat.util.logger.LogType;
-import me.vekster.lightanticheat.util.logger.Logger;
 import me.vekster.lightanticheat.util.reflection.ReflectionException;
 import me.vekster.lightanticheat.util.reflection.ReflectionUtil;
 import me.vekster.lightanticheat.version.identifier.LACVersion;
@@ -22,22 +19,16 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class VerPlayer {
 
     private static final Map<String, Boolean> CACHE = new HashMap<>();
     private static final Map<String, Boolean> ASYNC_CACHE = new ConcurrentHashMap<>();
-    private static Class<?> craftPlayerClass;
     private final Player PLAYER;
 
-    static {
-        try {
-            craftPlayerClass = ReflectionUtil.classForName("org.bukkit.craftbukkit.$version.entity.CraftPlayer");
-        } catch (ReflectionException e) {
-            Logger.logConsole(LogType.ERROR, "(" + Main.getInstance().getName() + ") CraftPlayer class is not found!");
-        }
-    }
+
 
     public VerPlayer(Player player) {
         this.PLAYER = player;
@@ -60,20 +51,11 @@ public class VerPlayer {
                 Object value = ReflectionUtil.runDeclaredMethod(player, methodName);
                 if (value instanceof Integer)
                     return (int) value;
-                return 250;
             }
-
-            if (craftPlayerClass == null) return 0;
-            Object craftPlayer = craftPlayerClass.cast(player);
-            Object entityPlayer = ReflectionUtil.runDeclaredMethod(craftPlayer, "getHandle");
-            if (entityPlayer == null) return 0;
-            Object result = ReflectionUtil.getDeclaredField(entityPlayer, "ping");
-            if (result instanceof Integer)
-                return (int) result;
-        } catch (ReflectionException e) {
+            return player.spigot().getPing();
+        } catch (Throwable throwable) {
             return 250;
         }
-        return 250;
     }
 
     public static int getPing(Player player) {
@@ -92,6 +74,15 @@ public class VerPlayer {
     @SecureAsync
     public int getPing(boolean async) {
         return CooldownUtil.getPing(LACPlayer.getLacPlayer(PLAYER).cooldown, PLAYER, async);
+    }
+
+
+    public static UUID getUniqueId(Player player) {
+        return player.getUniqueId();
+    }
+
+    public UUID getUniqueId() {
+        return PLAYER.getUniqueId();
     }
 
     @SecureAsync
