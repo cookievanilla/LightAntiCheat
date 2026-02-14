@@ -33,10 +33,12 @@ public class VerIdentifier {
         else if (version.startsWith("v1_17"))
             serverVersion = LACVersion.V1_17;
         else if (version.startsWith("v1_18"))
-            serverVersion = LACVersion.V1_17;
+            serverVersion = LACVersion.V1_18;
         else if (version.startsWith("v1_19"))
             serverVersion = LACVersion.V1_19;
-        else serverVersion = LACVersion.V1_20;
+        else if (version.startsWith("v1_20"))
+            serverVersion = LACVersion.V1_20;
+        else serverVersion = LACVersion.V1_21;
         return serverVersion;
     }
 
