@@ -26,12 +26,38 @@ public class VerPlayer {
 
     private static final Map<String, Boolean> CACHE = new HashMap<>();
     private static final Map<String, Boolean> ASYNC_CACHE = new ConcurrentHashMap<>();
+    private static volatile Class<?> craftPlayerClass;
+    private static volatile boolean craftPlayerClassLookupFailed;
     private final Player PLAYER;
 
 
 
     public VerPlayer(Player player) {
         this.PLAYER = player;
+    }
+
+
+    @Nullable
+    private static Class<?> getCraftPlayerClass() {
+        if (craftPlayerClass != null)
+            return craftPlayerClass;
+        if (craftPlayerClassLookupFailed)
+            return null;
+
+        synchronized (VerPlayer.class) {
+            if (craftPlayerClass != null)
+                return craftPlayerClass;
+            if (craftPlayerClassLookupFailed)
+                return null;
+
+            try {
+                craftPlayerClass = ReflectionUtil.classForName("org.bukkit.craftbukkit.$version.entity.CraftPlayer");
+            } catch (ReflectionException ignored) {
+                craftPlayerClassLookupFailed = true;
+                return null;
+            }
+            return craftPlayerClass;
+        }
     }
 
     public static int getPingWithoutCache(Player player, boolean async) {
@@ -53,7 +79,10 @@ public class VerPlayer {
                     return (int) value;
             }
 
-            Class<?> craftPlayerClass = ReflectionUtil.classForName("org.bukkit.craftbukkit.$version.entity.CraftPlayer");
+            Class<?> craftPlayerClass = getCraftPlayerClass();
+            if (craftPlayerClass == null)
+                return 250;
+
             Object craftPlayer = craftPlayerClass.cast(player);
             Object entityPlayer = ReflectionUtil.runDeclaredMethod(craftPlayer, "getHandle");
             if (entityPlayer == null)
