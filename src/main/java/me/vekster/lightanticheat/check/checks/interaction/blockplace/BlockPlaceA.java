@@ -38,11 +38,13 @@ public class BlockPlaceA extends InteractionCheck implements Listener {
         Buffer buffer = getBuffer(event.getPlayer(), true);
         if (!flagSafe(event.getPlayer(), event.getLacPlayer(), event.getBlockWorld(), true)) {
             buffer.put("lastAsyncResult", false);
+            buffer.put("forceFlagAsync", false);
             return;
         }
 
         boolean forceFlag = shouldForceFlagByAngle(event.getBlockX(), event.getBlockZ(), event.getEyeLocation());
-        buffer.put("lastAsyncResult", forceFlag);
+        buffer.put("lastAsyncResult", true);
+        buffer.put("forceFlagAsync", forceFlag);
     }
 
     @EventHandler
@@ -58,8 +60,8 @@ public class BlockPlaceA extends InteractionCheck implements Listener {
         if (!flagSafe(player, lacPlayer, block.getWorld().getName(), false))
             return;
 
-        boolean forceFlag = shouldForceFlagByAngle(block.getX(), block.getZ(), eyeLocation);
-        boolean raytraceFlag = !forceFlag && executeRaytrace(player, block.getX(), block.getZ(), block.getType(), buffer);
+        boolean forceFlag = buffer.getBoolean("forceFlagAsync") || shouldForceFlagByAngle(block.getX(), block.getZ(), eyeLocation);
+        boolean raytraceFlag = !forceFlag && executeRaytrace(player, block.getWorld().getName(), block.getX(), block.getZ(), block.getType(), buffer);
         if (!(forceFlag || raytraceFlag))
             return;
 
@@ -101,44 +103,42 @@ public class BlockPlaceA extends InteractionCheck implements Listener {
         return angle > 110 && eyeLocation.getPitch() < 60 && eyeLocation.getPitch() > -40;
     }
 
-    private boolean flagRaytrace(Player player, int blockX, int blockZ, Material blockType, Buffer buffer) {
-        try {
-            boolean flag = true;
-            Location blockLocation = new Location(player.getWorld(), blockX, 0.0D, blockZ);
-            Block targetBlock = player.getTargetBlockExact(10);
+    private boolean flagRaytrace(Player player, String blockWorld, int blockX, int blockZ, Material blockType) {
+        if (!player.getWorld().getName().equals(blockWorld))
+            return false;
+
+        boolean flag = true;
+        Location blockLocation = new Location(player.getWorld(), blockX, 0.0D, blockZ);
+        Block targetBlock = player.getTargetBlockExact(10);
+        if (targetBlock != null)
+            if (distanceHorizontal(blockLocation, targetBlock.getLocation()) <= 3.0)
+                flag = false;
+
+        if (flag) {
+            Set<Material> transparent = new HashSet<>();
+            transparent.add(Material.AIR);
+            transparent.add(Material.WATER);
+            transparent.add(Material.LAVA);
+            transparent.add(blockType);
             if (targetBlock != null)
-                if (distanceHorizontal(blockLocation, targetBlock.getLocation()) <= 3.0)
+                transparent.add(targetBlock.getType());
+
+            List<Block> lineOfSight = player.getLineOfSight(transparent, 10);
+            for (Block block1 : lineOfSight) {
+                if (distanceHorizontal(blockLocation, block1.getLocation()) <= 2.5) {
                     flag = false;
-
-            if (flag) {
-                Set<Material> transparent = new HashSet<>();
-                transparent.add(Material.AIR);
-                transparent.add(Material.WATER);
-                transparent.add(Material.LAVA);
-                transparent.add(blockType);
-                if (targetBlock != null)
-                    transparent.add(targetBlock.getType());
-
-                List<Block> lineOfSight = player.getLineOfSight(transparent, 10);
-                for (Block block1 : lineOfSight) {
-                    if (distanceHorizontal(blockLocation, block1.getLocation()) <= 2.5) {
-                        flag = false;
-                        break;
-                    }
+                    break;
                 }
             }
-
-            return flag;
-        } catch (IllegalStateException exception) {
-            resetBuffer(buffer);
-            return false;
         }
+
+        return flag;
     }
 
-    private boolean executeRaytrace(Player player, int blockX, int blockZ, Material blockType, Buffer buffer) {
+    private boolean executeRaytrace(Player player, String blockWorld, int blockX, int blockZ, Material blockType, Buffer buffer) {
         try {
             return Scheduler.entityThread(player, true, false,
-                    () -> flagRaytrace(player, blockX, blockZ, blockType, buffer));
+                    () -> flagRaytrace(player, blockWorld, blockX, blockZ, blockType));
         } catch (IllegalStateException exception) {
             resetBuffer(buffer);
             return false;

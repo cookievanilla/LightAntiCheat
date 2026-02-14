@@ -45,6 +45,10 @@ public class LACAsyncPlayerBreakBlockEvent extends Event {
         return lacPlayer;
     }
 
+    /**
+     * @deprecated Unsafe on Folia async handlers. Use primitive snapshot getters instead.
+     */
+    @Deprecated
     public Block getBlock() {
         return block;
     }
