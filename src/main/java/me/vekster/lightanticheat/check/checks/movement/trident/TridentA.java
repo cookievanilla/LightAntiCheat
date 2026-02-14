@@ -100,7 +100,7 @@ public class TridentA extends MovementCheck implements Listener {
         }
         ItemStack off = lacPlayer.getItemInOffHand();
         if (off != null && off.getType() == VerUtil.material.get("TRIDENT") &&
-                main.getEnchantmentLevel(VerUtil.enchantment.get("RIPTIDE")) > 3) {
+                off.getEnchantmentLevel(VerUtil.enchantment.get("RIPTIDE")) > 3) {
             return;
         }
 
