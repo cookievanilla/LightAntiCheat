@@ -32,6 +32,7 @@ public class FastBreakA extends InteractionCheck implements Listener {
     private static final Map<Material, Double> BLOCK_HARDNESS = new HashMap<>();
     private static final Map<Material, Double> TOOL_SPEED = new HashMap<>();
     private static final Map<Material, Integer> TOOL_TIERS = new HashMap<>();
+    private static final Map<Material, Integer> BLOCK_REQUIRED_TOOL_TIER = new HashMap<>();
 
     private static final long TICK_ROUNDING_TOLERANCE_MS = 75L;
     private static final long LATENCY_SPIKE_TOLERANCE_MS = 150L;
@@ -40,6 +41,9 @@ public class FastBreakA extends InteractionCheck implements Listener {
     static {
         BLOCK_HARDNESS.put(Material.STONE, 1.5D);
         BLOCK_HARDNESS.put(VerUtil.material.get("DEEPSLATE"), 3.0D);
+
+        BLOCK_REQUIRED_TOOL_TIER.put(Material.STONE, 1);
+        BLOCK_REQUIRED_TOOL_TIER.put(VerUtil.material.get("DEEPSLATE"), 1);
 
         registerPickaxe(VerUtil.material.get("WOODEN_PICKAXE"), 2.0D, 1);
         registerPickaxe(Material.STONE_PICKAXE, 4.0D, 2);
@@ -113,11 +117,10 @@ public class FastBreakA extends InteractionCheck implements Listener {
             return;
         }
 
-        int environmentSignature = getEnvironmentSignature(player, tool);
+        int environmentSignature = getEnvironmentSignature(player);
         if (!buffer.isExists("environmentSignature") || buffer.getInt("environmentSignature") != environmentSignature) {
             buffer.put("environmentSignature", environmentSignature);
-            if (buffer.getInt("flags") > 0)
-                buffer.put("flags", buffer.getInt("flags") - 1);
+            buffer.put("flags", 0);
             return;
         }
 
@@ -167,17 +170,16 @@ public class FastBreakA extends InteractionCheck implements Listener {
 
     private long getExpectedMineDuration(Player player, Block block, ItemStack tool, int efficiencyLevel) {
         double hardness = BLOCK_HARDNESS.getOrDefault(block.getType(), 1.5D);
-        double speedMultiplier = getToolSpeedMultiplier(player, block, tool, efficiencyLevel);
-        double damagePerTick = speedMultiplier / hardness / 30.0D;
+        double speedMultiplier = getToolSpeedMultiplier(player, tool, efficiencyLevel);
+        double divisor = canHarvest(block, tool) ? 30.0D : 100.0D;
+        double damagePerTick = speedMultiplier / hardness / divisor;
 
         int ticksToBreak = (int) Math.ceil(1.0D / Math.max(damagePerTick, 1.0E-4D));
         return ticksToBreak * 50L;
     }
 
-    private double getToolSpeedMultiplier(Player player, Block block, ItemStack tool, int efficiencyLevel) {
+    private double getToolSpeedMultiplier(Player player, ItemStack tool, int efficiencyLevel) {
         double speedMultiplier = TOOL_SPEED.getOrDefault(tool.getType(), 1.0D);
-        if (!canHarvest(block, tool))
-            speedMultiplier = 1.0D;
 
         if (speedMultiplier > 1.0D && efficiencyLevel > 0)
             speedMultiplier += efficiencyLevel * efficiencyLevel + 1.0D;
@@ -193,27 +195,33 @@ public class FastBreakA extends InteractionCheck implements Listener {
                 speedMultiplier *= getMiningFatigueMultiplier(fatigueLevel);
         }
 
-        if (isUnderwater(player) && hasNoAquaAffinity(tool))
+        if (isUnderwater(player) && !hasAquaAffinity(player))
             speedMultiplier /= 5.0D;
 
         return Math.max(speedMultiplier, 0.0001D);
     }
 
     private boolean canHarvest(Block block, ItemStack tool) {
-        int requiredTier = block.getType() == VerUtil.material.get("DEEPSLATE") ? 1 : 1;
+        int requiredTier = BLOCK_REQUIRED_TOOL_TIER.getOrDefault(block.getType(), Integer.MAX_VALUE);
         int toolTier = TOOL_TIERS.getOrDefault(tool.getType(), 0);
         return toolTier >= requiredTier;
     }
 
-    private boolean hasNoAquaAffinity(ItemStack tool) {
+    private boolean hasAquaAffinity(Player player) {
         if (VerUtil.enchantment.get("AQUA_AFFINITY") == null)
-            return true;
-        return tool.getEnchantmentLevel(VerUtil.enchantment.get("AQUA_AFFINITY")) <= 0;
+            return false;
+
+        ItemStack helmet = player.getInventory().getHelmet();
+        return helmet != null && helmet.getEnchantmentLevel(VerUtil.enchantment.get("AQUA_AFFINITY")) > 0;
     }
 
     private boolean isUnderwater(Player player) {
         Material eyeBlockType = player.getEyeLocation().getBlock().getType();
-        return eyeBlockType == Material.WATER;
+        if (eyeBlockType == Material.WATER)
+            return true;
+
+        Material bubbleColumn = VerUtil.material.get("BUBBLE_COLUMN");
+        return bubbleColumn != null && eyeBlockType == bubbleColumn;
     }
 
     private double getMiningFatigueMultiplier(int fatigueLevel) {
@@ -230,16 +238,17 @@ public class FastBreakA extends InteractionCheck implements Listener {
     }
 
     private long getIntervalTolerance(Player player) {
-        long pingTolerance = Math.min(200L, Math.round(VerPlayer.getPing(player) * 0.35D));
+        int ping = Math.max(0, VerPlayer.getPing(player));
+        long pingTolerance = Math.min(200L, Math.round(ping * 0.35D));
         return TICK_ROUNDING_TOLERANCE_MS + LATENCY_SPIKE_TOLERANCE_MS + pingTolerance;
     }
 
-    private int getEnvironmentSignature(Player player, ItemStack tool) {
+    private int getEnvironmentSignature(Player player) {
         int hasteLevel = getEffectAmplifier(player, PotionEffectType.HASTE);
         PotionEffectType fatigueType = VerUtil.potions.getOrDefault("MINING_FATIGUE", PotionEffectType.SLOW_DIGGING);
         int fatigueLevel = fatigueType == null ? 0 : getEffectAmplifier(player, fatigueType);
         int underwater = isUnderwater(player) ? 1 : 0;
-        int aquaAffinity = hasNoAquaAffinity(tool) ? 0 : 1;
+        int aquaAffinity = hasAquaAffinity(player) ? 1 : 0;
 
         return hasteLevel * 1000 + fatigueLevel * 100 + underwater * 10 + aquaAffinity;
     }
