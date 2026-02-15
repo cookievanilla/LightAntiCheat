@@ -67,12 +67,12 @@ public class ConnectionStabilityListener implements Listener {
 
         PLAYERS.keySet().removeIf(uuid -> !onlinePlayers.contains(uuid));
         for (UUID onlinePlayer : onlinePlayers)
-            PLAYERS.put(onlinePlayer, createHistoryWindow());
+            PLAYERS.putIfAbsent(onlinePlayer, createHistoryWindow());
     }
 
 
     private static List<Integer> createHistoryWindow() {
-        return Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0)));
+        return new ArrayList<>(Arrays.asList(0, 0, 0, 0));
     }
 
     public static ConnectionStability getConnectionStability(Player player) {
