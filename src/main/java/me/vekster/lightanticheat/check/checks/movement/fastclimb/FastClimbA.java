@@ -20,7 +20,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -64,6 +63,7 @@ public class FastClimbA extends MovementCheck implements Listener {
         Buffer buffer = getBuffer(player, true);
         if (hasTeleportOrRespawnTransition(cache, buffer)) {
             resetTracking(buffer);
+            return;
         }
 
         if (!isCheckAllowed(player, lacPlayer, true)) {
@@ -83,21 +83,30 @@ public class FastClimbA extends MovementCheck implements Listener {
 
         if (cache.sneakingTicks > -15)
             return;
-        Block block = AsyncUtil.getBlock(player.getLocation());
-        if (block == null) return;
-        Block downBlock = AsyncUtil.getBlock(player.getLocation().subtract(0, 1, 0));
-        if (downBlock == null) return;
 
-        Set<Material> withinMaterials = new HashSet<>();
-        withinMaterials.addAll(event.getToWithinMaterials());
-        withinMaterials.addAll(event.getFromWithinMaterials());
-
-        if (!isClimbableContext(block, downBlock, withinMaterials, player.getLocation())) {
+        Block block = AsyncUtil.getBlock(event.getTo());
+        if (block == null) {
             resetTracking(buffer);
             return;
         }
 
-        boolean scaffoldingContext = withinMaterials.contains(VerUtil.material.get("SCAFFOLDING"));
+        Block downBlock = AsyncUtil.getBlock(event.getTo().clone().subtract(0, 1, 0));
+        if (downBlock == null) {
+            resetTracking(buffer);
+            return;
+        }
+
+        Set<Material> toWithin = event.getToWithinMaterials();
+        Set<Material> fromWithin = event.getFromWithinMaterials();
+
+
+        if (!isClimbableContext(block, downBlock, toWithin, event.getTo())) {
+            resetTracking(buffer);
+            return;
+        }
+
+        boolean scaffoldingContext = toWithin.contains(VerUtil.material.get("SCAFFOLDING")) ||
+                isScaffolding(block.getType()) || isScaffolding(downBlock.getType());
 
         buffer.put("climbingEvents", buffer.getInt("climbingEvents") + 1);
         if (buffer.getInt("climbingEvents") <= 2)
@@ -131,9 +140,9 @@ public class FastClimbA extends MovementCheck implements Listener {
 
         double maxUpSpeed = 0.1176001 * 1.5;
         double maxDownSpeed = -0.15001 * 1.65;
-        boolean vineContext = isVine(block.getType()) || isVine(downBlock.getType()) || withinMaterials.stream().anyMatch(this::isVine);
-        boolean ladderContext = isLadder(block.getType()) || isLadder(downBlock.getType()) || withinMaterials.stream().anyMatch(this::isLadder);
-        boolean edgeTransition = isClimbingEdgeTransition(event.getFrom(), event.getTo(), withinMaterials);
+        boolean vineContext = isVine(block.getType()) || isVine(downBlock.getType()) || toWithin.stream().anyMatch(this::isVine);
+        boolean ladderContext = isLadder(block.getType()) || isLadder(downBlock.getType()) || toWithin.stream().anyMatch(this::isLadder);
+        boolean edgeTransition = isClimbingEdgeTransition(event.getFrom(), event.getTo(), fromWithin, toWithin);
 
         if (VerIdentifier.getVersion().isOlderThan(LACVersion.V1_13)) {
             maxUpSpeed *= 2;
@@ -167,6 +176,7 @@ public class FastClimbA extends MovementCheck implements Listener {
             }
         }
 
+        double eps = Math.max(LOWEST_BLOCK_HEIGHT, 0.003D);
         boolean vertical = distanceVertical(event.getFrom(), event.getTo()) >= 0;
         Location eventPrevious = null;
         Location packetPrevious = null;
@@ -180,8 +190,8 @@ public class FastClimbA extends MovementCheck implements Listener {
             }
             double eventVerticalSpeed = distanceVertical(eventLocation, eventPrevious);
             double packetVerticalSpeed = distanceVertical(packetLocation, packetPrevious);
-            if (vertical && eventVerticalSpeed < -0.007 || !vertical && eventVerticalSpeed > 0.007 ||
-                    vertical && packetVerticalSpeed < -0.007 || !vertical && packetVerticalSpeed > 0.007)
+            if (vertical && eventVerticalSpeed < -eps || !vertical && eventVerticalSpeed > eps ||
+                    vertical && packetVerticalSpeed < -eps || !vertical && packetVerticalSpeed > eps)
                 return;
             eventPrevious = eventLocation;
             packetPrevious = packetLocation;
@@ -215,43 +225,68 @@ public class FastClimbA extends MovementCheck implements Listener {
         buffer.put("annoyingBugIdleTicks", 0);
     }
 
-    private boolean isClimbableContext(Block block, Block downBlock, Set<Material> withinMaterials, Location location) {
-        if (!isClimbable(block.getType()) && !isClimbable(downBlock.getType()) && withinMaterials.stream().noneMatch(this::isClimbable)) {
-            return false;
-        }
+    private boolean isClimbableContext(Block block, Block downBlock, Set<Material> toWithin, Location to) {
+        boolean toHasClimbable = toWithin.stream().anyMatch(this::isClimbable);
 
-        Block headBlock = AsyncUtil.getBlock(location.clone().add(0, 1, 0));
-        Block frontBlock = AsyncUtil.getBlock(location.clone().add(location.getDirection().setY(0).normalize().multiply(0.4)));
-        return headBlock != null && (isClimbable(headBlock.getType()) || isClimbable(block.getType()) ||
-                isClimbable(downBlock.getType()) || (frontBlock != null && isClimbable(frontBlock.getType())) ||
-                withinMaterials.stream().anyMatch(this::isClimbable));
+        Block headBlock = AsyncUtil.getBlock(to.clone().add(0, 1, 0));
+        boolean bodyInside =
+                isClimbable(block.getType()) ||
+                        isClimbable(downBlock.getType()) ||
+                        (headBlock != null && isClimbable(headBlock.getType()));
+
+        if (!toHasClimbable && !bodyInside)
+            return false;
+
+        return true;
     }
 
-    private boolean isClimbingEdgeTransition(Location from, Location to, Set<Material> withinMaterials) {
-        double verticalDelta = to.getY() - from.getY();
-        if (Math.abs(verticalDelta) < 0.01) {
+    private boolean isClimbingEdgeTransition(Location from, Location to, Set<Material> fromWithin, Set<Material> toWithin) {
+        boolean fromClimb = fromWithin.stream().anyMatch(this::isClimbable);
+        boolean toClimb = toWithin.stream().anyMatch(this::isClimbable);
+
+        if (!fromClimb || toClimb)
             return false;
-        }
-        Block aboveTo = AsyncUtil.getBlock(to.clone().add(0, 1, 0));
-        boolean leavingClimbable = aboveTo == null || !isClimbable(aboveTo.getType());
-        boolean enteringPlatform = Math.abs(to.getY() - Math.floor(to.getY())) < 0.03;
-        return leavingClimbable && enteringPlatform && withinMaterials.stream().anyMatch(this::isClimbable);
+
+        double dy = to.getY() - from.getY();
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        double horiz = Math.hypot(dx, dz);
+
+        if (horiz > 0.25)
+            return false;
+
+        if (Math.abs(dy) < 0.01)
+            return false;
+
+        Block below = AsyncUtil.getBlock(to.clone().subtract(0, 0.2, 0));
+        if (below == null || isActuallyPassable(below))
+            return false;
+
+        return Math.abs(to.getY() - Math.floor(to.getY())) < 0.08;
     }
 
     private boolean isClimbable(Material material) {
-        return isLadder(material) || isVine(material) || material == VerUtil.material.get("SCAFFOLDING");
+        return isLadder(material) || isVine(material) || isScaffolding(material);
     }
 
     private boolean isLadder(Material material) {
-        return material != null && material.name().contains("LADDER");
+        return material != null && material == VerUtil.material.get("LADDER");
     }
 
     private boolean isVine(Material material) {
-        if (material == null) {
-            return false;
-        }
-        String name = material.name();
-        return name.equals("VINE") || name.contains("_VINES") || name.contains("_VINE");
+        return material != null && (
+                material == VerUtil.material.get("VINE") ||
+                        material == VerUtil.material.get("TWISTING_VINES") ||
+                        material == VerUtil.material.get("WEEPING_VINES") ||
+                        material == VerUtil.material.get("CAVE_VINES") ||
+                        material == VerUtil.material.get("CAVE_VINES_PLANT") ||
+                        material == VerUtil.material.get("TWISTING_VINES_PLANT") ||
+                        material == VerUtil.material.get("WEEPING_VINES_PLANT")
+        );
+    }
+
+    private boolean isScaffolding(Material material) {
+        return material != null && material == VerUtil.material.get("SCAFFOLDING");
     }
 
 }
