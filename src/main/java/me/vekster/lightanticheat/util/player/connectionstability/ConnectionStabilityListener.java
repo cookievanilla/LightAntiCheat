@@ -7,17 +7,23 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectionStabilityListener implements Listener {
 
-    private static final Map<UUID, List<Integer>> PLAYERS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, List<Integer>> PLAYERS = new ConcurrentHashMap<>();
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        PLAYERS.put(event.getPlayer().getUniqueId(), Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
+        PLAYERS.put(event.getPlayer().getUniqueId(), createHistoryWindow());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        PLAYERS.remove(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
@@ -39,7 +45,7 @@ public class ConnectionStabilityListener implements Listener {
                 onlinePlayers.add(player.getUniqueId());
 
             for (UUID onlinePlayer : onlinePlayers)
-                PLAYERS.putIfAbsent(onlinePlayer, Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
+                PLAYERS.putIfAbsent(onlinePlayer, createHistoryWindow());
 
             PLAYERS.entrySet().removeIf(entry -> {
                 if (!onlinePlayers.contains(entry.getKey()))
@@ -61,7 +67,12 @@ public class ConnectionStabilityListener implements Listener {
 
         PLAYERS.keySet().removeIf(uuid -> !onlinePlayers.contains(uuid));
         for (UUID onlinePlayer : onlinePlayers)
-            PLAYERS.put(onlinePlayer, Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
+            PLAYERS.put(onlinePlayer, createHistoryWindow());
+    }
+
+
+    private static List<Integer> createHistoryWindow() {
+        return Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0)));
     }
 
     public static ConnectionStability getConnectionStability(Player player) {
