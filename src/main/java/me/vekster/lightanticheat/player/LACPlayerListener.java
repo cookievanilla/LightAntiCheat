@@ -516,7 +516,7 @@ public class LACPlayerListener implements Listener {
 
         EntityType damagerType = event.getDamager().getType();
         long now = System.currentTimeMillis();
-        if (damagerType == EntityType.ENDER_CRYSTAL)
+        if ("ENDER_CRYSTAL".equals(damagerType.name()))
             lacPlayer.cache.lastEndCrystalImpact = now;
         if (damagerType == VerUtil.entityTypes.get("WIND_CHARGE"))
             lacPlayer.cache.lastWindChargeImpact = now;
