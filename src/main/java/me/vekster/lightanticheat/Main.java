@@ -1,6 +1,7 @@
 package me.vekster.lightanticheat;
 
 import me.vekster.lightanticheat.check.Check;
+import me.vekster.lightanticheat.check.CheckName;
 import me.vekster.lightanticheat.check.buffer.Buffer;
 import me.vekster.lightanticheat.check.checks.combat.autoclicker.AutoClickerA;
 import me.vekster.lightanticheat.check.checks.combat.autoclicker.AutoClickerB;
@@ -69,6 +70,9 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 public class Main extends JavaPlugin {
 
     private static Main instance;
@@ -76,6 +80,7 @@ public class Main extends JavaPlugin {
     private static final long BUFFER_DURATION_MILS = 20 * 1000L;
     private static final int PLUGIN_ID = 112053;
     private static final int STATS_ID = 12841;
+    private final Set<CheckName> registeredCheckNames = EnumSet.noneOf(CheckName.class);
 
     @Override
     public void onEnable() {
@@ -123,9 +128,10 @@ public class Main extends JavaPlugin {
         Updater.loadUpdateChecker();
         registerListener(new Updater());
 
+        registeredCheckNames.clear();
+
         registerCheckListener(new FlightA());
         registerCheckListener(new FlightB());
-        registerCheckListener(new FlightC());
         registerCheckListener(new FlightC());
         registerCheckListener(new LiquidWalkA());
         registerCheckListener(new LiquidWalkB());
@@ -141,7 +147,6 @@ public class Main extends JavaPlugin {
         registerCheckListener(new SpeedA());
         registerCheckListener(new SpeedB());
         registerCheckListener(new SpeedD());
-        registerCheckListener(new SpeedE());
         registerCheckListener(new SpeedE());
         registerCheckListener(new SpeedF());
         registerCheckListener(new SpeedC());
@@ -211,7 +216,13 @@ public class Main extends JavaPlugin {
     }
 
     private void registerCheckListener(Object object) {
-        Check.registerListener(((Check) object).getCheckSetting().name, (Listener) object);
+        Check check = (Check) object;
+        CheckName checkName = check.getCheckSetting().name;
+        if (!registeredCheckNames.add(checkName)) {
+            getLogger().warning("Skipped duplicate check registration: " + checkName.name());
+            return;
+        }
+        Check.registerListener(checkName, (Listener) object);
     }
 
 }
