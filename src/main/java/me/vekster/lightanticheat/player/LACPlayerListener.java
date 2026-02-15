@@ -17,12 +17,14 @@ import me.vekster.lightanticheat.util.config.ConfigManager;
 import me.vekster.lightanticheat.util.cooldown.CooldownUtil;
 import me.vekster.lightanticheat.util.detection.CheckUtil;
 import me.vekster.lightanticheat.util.detection.LeanTowards;
+import me.vekster.lightanticheat.util.hook.server.folia.FoliaUtil;
 import me.vekster.lightanticheat.util.scheduler.Scheduler;
 import me.vekster.lightanticheat.version.VerPlayer;
 import me.vekster.lightanticheat.version.VerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
@@ -767,6 +769,11 @@ public class LACPlayerListener implements Listener {
                     asyncPlayers.put(player.getUniqueId(), lacPlayer);
                     PlayerCache cache = lacPlayer.cache;
                     Scheduler.entityThread(player, () -> {
+                        World asyncWorld = AsyncUtil.getWorld(player);
+                        World playerWorld = player.getWorld();
+                        if (!FoliaUtil.isStable(player) || asyncWorld == null || playerWorld == null ||
+                                !asyncWorld.getUID().equals(playerWorld.getUID()))
+                            return;
                         cache.sneakingTicks = increase(player.isSneaking(), cache.sneakingTicks);
                         cache.sprintingTicks = increase(player.isSprinting(), cache.sprintingTicks);
                         cache.swimmingTicks = increase(lacPlayer.isSwimming(), cache.swimmingTicks);

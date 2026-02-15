@@ -2,13 +2,16 @@ package me.vekster.lightanticheat.version;
 
 import me.vekster.lightanticheat.player.LACPlayer;
 import me.vekster.lightanticheat.util.annotation.SecureAsync;
+import me.vekster.lightanticheat.util.async.AsyncUtil;
 import me.vekster.lightanticheat.util.cooldown.CooldownUtil;
+import me.vekster.lightanticheat.util.hook.server.folia.FoliaUtil;
 import me.vekster.lightanticheat.util.reflection.ReflectionException;
 import me.vekster.lightanticheat.util.reflection.ReflectionUtil;
 import me.vekster.lightanticheat.version.identifier.LACVersion;
 import me.vekster.lightanticheat.version.identifier.VerIdentifier;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -157,12 +160,28 @@ public class VerPlayer {
 
     @SecureAsync
     public static boolean isClimbing(Player player) {
-        return VerUtil.multiVersion.isClimbing(player);
+        if (!isPlayerStableForRegion(player))
+            return false;
+        try {
+            return VerUtil.multiVersion.isClimbing(player);
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
     }
 
     @SecureAsync
     public boolean isClimbing() {
-        return VerUtil.multiVersion.isClimbing(PLAYER);
+        return isClimbing(PLAYER);
+    }
+
+    private static boolean isPlayerStableForRegion(Player player) {
+        if (!FoliaUtil.isStable(player))
+            return false;
+        World asyncWorld = AsyncUtil.getWorld(player);
+        World playerWorld = player.getWorld();
+        if (asyncWorld == null || playerWorld == null)
+            return false;
+        return asyncWorld.getUID().equals(playerWorld.getUID());
     }
 
     @SecureAsync
