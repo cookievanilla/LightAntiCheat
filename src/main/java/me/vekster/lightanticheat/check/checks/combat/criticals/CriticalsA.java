@@ -29,6 +29,16 @@ import org.bukkit.potion.PotionEffectType;
 public class CriticalsA extends CombatCheck implements Listener {
     private static final long REPEAT_WINDOW_MS = 1600L;
 
+    private static final String KEY_ATTRIBUTE = "attribute";
+    private static final String KEY_CONTEXT_LAST_TELEPORT = "contextLastTeleport";
+    private static final String KEY_CONTEXT_LAST_WATER = "contextLastWater";
+    private static final String KEY_CONTEXT_LAST_VEHICLE = "contextLastVehicle";
+    private static final String KEY_MOVEMENT_CONTEXT = "movementContext";
+    private static final String KEY_LAST_METHOD_FLAG = "lastMethodFlag";
+    private static final String KEY_MISSED_METHOD_FLAG = "missedMethodFlag";
+
+    private static final HistoryElement[] HISTORY = HistoryElement.values();
+
     public CriticalsA() {
         super(CheckName.CRITICALS_A);
     }
@@ -47,19 +57,17 @@ public class CriticalsA extends CombatCheck implements Listener {
         if (!isCheckAllowed(player, lacPlayer))
             return;
 
-        if (!passesCommonChecks(player, lacPlayer, cache, true))
-            return;
-
+        long now = System.currentTimeMillis();
         Buffer buffer = getBuffer(player, true);
         refreshContext(buffer, player, lacPlayer, cache);
 
-        if (!passesGroundShapeChecks(player))
+        if (!passesCommonChecks(player, lacPlayer, cache, false, now))
             return;
-
+        if (!passesGroundShapeChecks(player, false))
+            return;
         if (!hasMicroJumpPattern(cache))
             return;
-
-        if (isSweepingAttributeRecentlyUsed(player, buffer))
+        if (isSweepingAttributeRecentlyUsed(player, buffer, now))
             return;
 
         callViolationEventIfRepeat(player, lacPlayer, event.getEvent(), buffer, REPEAT_WINDOW_MS);
@@ -78,29 +86,29 @@ public class CriticalsA extends CombatCheck implements Listener {
         PlayerCache cache = lacPlayer.cache;
         Player player = event.getPlayer();
 
-        if (!isCheckAllowed(player, lacPlayer))
-            return;
+        Scheduler.runTask(true, () -> {
+            if (!isCheckAllowed(player, lacPlayer))
+                return;
 
-        if (!passesCommonChecks(player, lacPlayer, cache, false))
-            return;
+            long now = System.currentTimeMillis();
+            Buffer buffer = getBuffer(player, true);
+            refreshContext(buffer, player, lacPlayer, cache);
 
-        Buffer buffer = getBuffer(player, true);
-        refreshContext(buffer, player, lacPlayer, cache);
+            if (!passesCommonChecks(player, lacPlayer, cache, true, now))
+                return;
+            if (!passesGroundShapeChecks(player, true))
+                return;
+            if (!hasMicroJumpPattern(cache))
+                return;
+            if (isSweepingAttributeRecentlyUsed(player, buffer, now))
+                return;
 
-        if (!passesGroundShapeChecks(player))
-            return;
-
-        if (!hasMicroJumpPattern(cache))
-            return;
-
-        if (isSweepingAttributeRecentlyUsed(player, buffer))
-            return;
-
-        Scheduler.runTask(true, () -> callViolationEventIfRepeat(player, lacPlayer, null, buffer, REPEAT_WINDOW_MS));
+            callViolationEventIfRepeat(player, lacPlayer, null, buffer, REPEAT_WINDOW_MS);
+        });
     }
 
-    private boolean passesCommonChecks(Player player, LACPlayer lacPlayer, PlayerCache cache, boolean allowBedrock) {
-        if (!allowBedrock && FloodgateHook.isBedrockPlayer(player, true))
+    private boolean passesCommonChecks(Player player, LACPlayer lacPlayer, PlayerCache cache, boolean checkBedrock, long now) {
+        if (checkBedrock && FloodgateHook.isBedrockPlayer(player, true))
             return false;
 
         if (player.getFallDistance() == 0 || ((Entity) player).isOnGround())
@@ -120,41 +128,41 @@ public class CriticalsA extends CombatCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -3)
             return false;
 
-        long time = System.currentTimeMillis();
-        if (hasRecentMobilityContext(cache, lacPlayer, time, 800, 1300, 1000, 1700, 1400, 2400))
+        if (hasRecentMobilityContext(cache, lacPlayer, now, 800, 1300, 1000, 1700, 1400, 2400))
             return false;
-        if (time - cache.lastInsideVehicle <= 150 || time - cache.lastInWater <= 150 ||
-                time - cache.lastWasFished <= 4000 || time - cache.lastTeleport <= 700 ||
-                time - cache.lastRespawn <= 500 || time - cache.lastEntityVeryNearby <= 500 ||
-                time - cache.lastSlimeBlock <= 500 || time - cache.lastHoneyBlock <= 500 ||
-                time - cache.lastWasHit <= 350 || time - cache.lastWasDamaged <= 150 ||
-                time - cache.lastKbVelocity <= 500)
+        if (now - cache.lastInsideVehicle <= 150 || now - cache.lastInWater <= 150 ||
+                now - cache.lastWasFished <= 4000 || now - cache.lastTeleport <= 700 ||
+                now - cache.lastRespawn <= 500 || now - cache.lastEntityVeryNearby <= 500 ||
+                now - cache.lastSlimeBlock <= 500 || now - cache.lastHoneyBlock <= 500 ||
+                now - cache.lastWasHit <= 350 || now - cache.lastWasDamaged <= 150 ||
+                now - cache.lastKbVelocity <= 500)
             return false;
 
         return true;
     }
 
-    private boolean passesGroundShapeChecks(Player player) {
+    private boolean passesGroundShapeChecks(Player player, boolean strict) {
         for (Block block : getWithinBlocks(player)) {
-            if (!isActuallyPassable(block) || !isActuallyPassable(block.getRelative(BlockFace.UP)))
+            if (!isActuallyPassable(block))
+                return false;
+            if (strict && !isActuallyPassable(block.getRelative(BlockFace.UP)))
                 return false;
         }
 
-        boolean ground = false;
         for (Block block : getDownBlocks(player, 0.1)) {
-            if (!isActuallyPassable(block) || !isActuallyPassable(block.getRelative(BlockFace.DOWN))) {
-                ground = true;
-                break;
-            }
+            if (!isActuallyPassable(block))
+                return true;
+            if (strict && !isActuallyPassable(block.getRelative(BlockFace.DOWN)))
+                return true;
         }
-        return ground;
+        return false;
     }
 
-    private boolean isSweepingAttributeRecentlyUsed(Player player, Buffer buffer) {
+    private boolean isSweepingAttributeRecentlyUsed(Player player, Buffer buffer, long now) {
         if (getItemStackAttributes(player, "PLAYER_SWEEPING_DAMAGE_RATIO") != 0 ||
                 getPlayerAttributes(player).getOrDefault("PLAYER_SWEEPING_DAMAGE_RATIO", 0.0) > 0.01)
-            buffer.put("attribute", System.currentTimeMillis());
-        return System.currentTimeMillis() - buffer.getLong("attribute") < 2500;
+            buffer.put(KEY_ATTRIBUTE, now);
+        return now - buffer.getLong(KEY_ATTRIBUTE) < 2500;
     }
 
     private void refreshContext(Buffer buffer, Player player, LACPlayer lacPlayer, PlayerCache cache) {
@@ -162,13 +170,13 @@ public class CriticalsA extends CombatCheck implements Listener {
         long waterState = cache.lastInWater;
         long vehicleState = cache.lastInsideVehicle;
 
-        if (buffer.getLong("contextLastTeleport") != teleportState ||
-                buffer.getLong("contextLastWater") != waterState ||
-                buffer.getLong("contextLastVehicle") != vehicleState) {
+        if (buffer.getLong(KEY_CONTEXT_LAST_TELEPORT) != teleportState ||
+                buffer.getLong(KEY_CONTEXT_LAST_WATER) != waterState ||
+                buffer.getLong(KEY_CONTEXT_LAST_VEHICLE) != vehicleState) {
             resetRepeatBuffer(buffer);
-            buffer.put("contextLastTeleport", teleportState);
-            buffer.put("contextLastWater", waterState);
-            buffer.put("contextLastVehicle", vehicleState);
+            buffer.put(KEY_CONTEXT_LAST_TELEPORT, teleportState);
+            buffer.put(KEY_CONTEXT_LAST_WATER, waterState);
+            buffer.put(KEY_CONTEXT_LAST_VEHICLE, vehicleState);
         }
 
         String context = (((Entity) player).isOnGround() ? "G" : "A") +
@@ -176,17 +184,17 @@ public class CriticalsA extends CombatCheck implements Listener {
                 (player.isInsideVehicle() ? "V" : "N") +
                 (lacPlayer.isGliding() ? "E" : "-") +
                 (lacPlayer.isRiptiding() ? "R" : "-");
-        String previousContext = buffer.getString("movementContext");
+        String previousContext = buffer.getString(KEY_MOVEMENT_CONTEXT);
         if (previousContext != null && !previousContext.equals(context))
             resetRepeatBuffer(buffer);
 
-        buffer.put("movementContext", context);
+        buffer.put(KEY_MOVEMENT_CONTEXT, context);
     }
 
     private void resetRepeatBuffer(Buffer buffer) {
         // Keys below must match Check#callViolationEventIfRepeat implementation.
-        buffer.put("lastMethodFlag", 0L);
-        buffer.put("missedMethodFlag", false);
+        buffer.put(KEY_LAST_METHOD_FLAG, 0L);
+        buffer.put(KEY_MISSED_METHOD_FLAG, false);
     }
 
     private boolean hasMicroJumpPattern(PlayerCache cache) {
@@ -205,7 +213,7 @@ public class CriticalsA extends CombatCheck implements Listener {
         int steadyLargeDrop = 0;
         int currentDirection = 0;
 
-        for (HistoryElement element : HistoryElement.values()) {
+        for (HistoryElement element : HISTORY) {
             Location location = history.get(element);
             if (location == null)
                 return false;
