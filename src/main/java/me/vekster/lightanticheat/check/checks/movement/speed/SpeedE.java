@@ -12,7 +12,7 @@ import me.vekster.lightanticheat.util.hook.server.folia.FoliaUtil;
 import me.vekster.lightanticheat.util.hook.plugin.FloodgateHook;
 import me.vekster.lightanticheat.util.scheduler.Scheduler;
 import me.vekster.lightanticheat.version.VerUtil;
-import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -109,6 +109,11 @@ public class SpeedE extends MovementCheck implements Listener {
         if (currentTime - buffer.getLong("lastSetback") < 150)
             return;
 
+        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 1000)) {
+            resetMicroTeleportWindow(buffer);
+            return;
+        }
+
         double horizontalDistance = distanceHorizontal(event.getFrom(), event.getTo());
         if (horizontalDistance > 6.0) {
             applySetback(player, event, buffer);
@@ -116,7 +121,7 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
         }
 
-        if (horizontalDistance <= 1.15)
+        if (horizontalDistance <= 0.75)
             return;
 
         double maxSpeed = getMicroTeleportMaxSpeed(player, cache, buffer);
@@ -153,6 +158,11 @@ public class SpeedE extends MovementCheck implements Listener {
         long currentTime = System.currentTimeMillis();
         if (currentTime - buffer.getLong("lastSetback") < 150)
             return;
+
+        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 1000)) {
+            resetMicroTeleportWindow(buffer);
+            return;
+        }
 
         if (distanceVertical(event.getFrom(), event.getTo()) > 12) {
             applySetback(player, event, buffer);
@@ -262,6 +272,7 @@ public class SpeedE extends MovementCheck implements Listener {
             buffer.put("microTeleportHorizontalSum", 0.0);
             buffer.put("microTeleportSamples", 0);
             buffer.put("microTeleportPhysicsGaps", 0);
+            buffer.put("microTeleportPrevJump", 0.0);
         }
 
         double walkFactor = Math.max(0.35, event.getPlayer().getWalkSpeed() / 0.2);
@@ -274,14 +285,18 @@ public class SpeedE extends MovementCheck implements Listener {
         double prevJump = buffer.getDouble("microTeleportPrevJump");
         buffer.put("microTeleportPrevJump", currentJump);
 
-        double eventPrevStep = distanceHorizontal(cache.history.onEvent.location.get(HistoryElement.FIRST),
-                cache.history.onEvent.location.get(HistoryElement.SECOND));
-        double packetPrevStep = distanceHorizontal(cache.history.onPacket.location.get(HistoryElement.FIRST),
-                cache.history.onPacket.location.get(HistoryElement.SECOND));
+        double eventPrevStep = safeDistanceHorizontal(
+                cache.history.onEvent.location.get(HistoryElement.FIRST),
+                cache.history.onEvent.location.get(HistoryElement.SECOND)
+        );
+        double packetPrevStep = safeDistanceHorizontal(
+                cache.history.onPacket.location.get(HistoryElement.FIRST),
+                cache.history.onPacket.location.get(HistoryElement.SECOND)
+        );
         double prevExpected = Math.max(prevJump, Math.max(eventPrevStep, packetPrevStep));
 
         boolean physicsGap = currentJump > maxPerTick * 1.25 &&
-                (prevExpected == 0.0 || currentJump > prevExpected * 1.9 + 0.12);
+                (prevExpected <= 0.0 || currentJump > prevExpected * 1.9 + 0.12);
         if (physicsGap)
             buffer.put("microTeleportPhysicsGaps", buffer.getInt("microTeleportPhysicsGaps") + 1);
 
@@ -300,6 +315,21 @@ public class SpeedE extends MovementCheck implements Listener {
         event.setCancelled(true);
         FoliaUtil.teleportPlayer(player, event.getFrom());
         buffer.put("lastSetback", System.currentTimeMillis());
+        resetMicroTeleportWindow(buffer);
+    }
+
+    private void resetMicroTeleportWindow(Buffer buffer) {
+        buffer.put("microTeleportWindowStart", 0L);
+        buffer.put("microTeleportHorizontalSum", 0.0);
+        buffer.put("microTeleportSamples", 0);
+        buffer.put("microTeleportPhysicsGaps", 0);
+        buffer.put("microTeleportPrevJump", 0.0);
+    }
+
+    private double safeDistanceHorizontal(Location first, Location second) {
+        if (first == null || second == null)
+            return 0.0;
+        return distanceHorizontal(first, second);
     }
 
     private double getMicroTeleportMaxSpeed(Player player, PlayerCache cache, Buffer buffer) {
