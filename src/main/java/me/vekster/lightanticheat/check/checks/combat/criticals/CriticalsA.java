@@ -28,6 +28,7 @@ import org.bukkit.potion.PotionEffectType;
  */
 public class CriticalsA extends CombatCheck implements Listener {
     private static final long REPEAT_WINDOW_MS = 1600L;
+    private static final long SWEEPING_ATTRIBUTE_WINDOW_MS = 2500L;
 
     private static final String KEY_ATTRIBUTE = "attribute";
     private static final String KEY_CONTEXT_LAST_TELEPORT = "contextLastTeleport";
@@ -61,7 +62,7 @@ public class CriticalsA extends CombatCheck implements Listener {
         Buffer buffer = getBuffer(player, true);
         refreshContext(buffer, player, lacPlayer, cache);
 
-        if (!passesCommonChecks(player, lacPlayer, cache, false, now))
+        if (!passesCommonChecks(player, lacPlayer, cache, true, now))
             return;
         if (!passesGroundShapeChecks(player, false))
             return;
@@ -162,7 +163,7 @@ public class CriticalsA extends CombatCheck implements Listener {
         if (getItemStackAttributes(player, "PLAYER_SWEEPING_DAMAGE_RATIO") != 0 ||
                 getPlayerAttributes(player).getOrDefault("PLAYER_SWEEPING_DAMAGE_RATIO", 0.0) > 0.01)
             buffer.put(KEY_ATTRIBUTE, now);
-        return now - buffer.getLong(KEY_ATTRIBUTE) < 2500;
+        return now - buffer.getLong(KEY_ATTRIBUTE) < SWEEPING_ATTRIBUTE_WINDOW_MS;
     }
 
     private void refreshContext(Buffer buffer, Player player, LACPlayer lacPlayer, PlayerCache cache) {
@@ -229,7 +230,8 @@ public class CriticalsA extends CombatCheck implements Listener {
             }
 
             double delta = y - previousY;
-            if (Math.abs(delta) <= LOWEST_BLOCK_HEIGHT)
+            double epsilon = Math.max(LOWEST_BLOCK_HEIGHT, 0.003);
+            if (Math.abs(delta) <= epsilon)
                 tinyDeltaCount++;
 
             if (Math.abs(delta) >= 0.06) {
@@ -239,7 +241,7 @@ public class CriticalsA extends CombatCheck implements Listener {
                     steadyLargeDrop++;
             }
 
-            int direction = delta > LOWEST_BLOCK_HEIGHT ? 1 : delta < -LOWEST_BLOCK_HEIGHT ? -1 : 0;
+            int direction = delta > epsilon ? 1 : delta < -epsilon ? -1 : 0;
             if (direction != 0 && currentDirection != 0 && direction != currentDirection)
                 directionChanges++;
             if (direction != 0)
