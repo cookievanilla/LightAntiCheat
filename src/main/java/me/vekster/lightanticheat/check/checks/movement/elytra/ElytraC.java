@@ -80,6 +80,13 @@ public class ElytraC extends MovementCheck implements Listener {
             return;
         }
 
+        int ping = lacPlayer.getPing();
+        if (ping >= 180 && cache.glidingTicks <= 12) {
+            buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
+            return;
+        }
+
         if (!event.isToWithinBlocksPassable() || !event.isFromWithinBlocksPassable()) {
             buffer.put("glidingEvents", 0);
             buffer.put("elytraFlags", 0);
@@ -138,7 +145,8 @@ public class ElytraC extends MovementCheck implements Listener {
         double horizontalSpeed = distanceHorizontal(event.getFrom(), event.getTo());
         double averageHorizontalSpeed = distanceHorizontal(cache.history.onEvent.location.get(HistoryElement.FIRST), event.getTo()) / 2.0;
 
-        if (Math.min(horizontalSpeed, averageHorizontalSpeed) < Math.max(maxTickSpeed, maxEventSpeed) * 1.6 + 0.35)
+        double pingAllowance = Math.min(Math.max((ping - 120) / 240.0, 0.0), 0.35);
+        if (Math.min(horizontalSpeed, averageHorizontalSpeed) < Math.max(maxTickSpeed, maxEventSpeed) * (1.6 + pingAllowance) + 0.35 + pingAllowance)
             return;
 
         Scheduler.runTask(true, () -> {
