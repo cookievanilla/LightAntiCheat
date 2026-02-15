@@ -751,16 +751,10 @@ public class LACPlayerListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void lastBlockExplosion(LACAsyncPlayerMoveEvent event) {
         for (CachedEntity cachedEntity : event.getLacPlayer().cache.entitiesNearby)
-            if (cachedEntity.entityType == EntityType.TNT || cachedEntity.entityType == EntityType.ENDER_CRYSTAL) {
+            if (cachedEntity.entityType == EntityType.TNT) {
                 LACPlayer lacPlayer = event.getLacPlayer();
-                long currentTime = System.currentTimeMillis();
-                if (cachedEntity.entityType == EntityType.TNT) {
-                    lacPlayer.cache.lastBlockExplosion = currentTime;
-                    lacPlayer.cache.vectorOnBlockExplosion = null;
-                } else {
-                    lacPlayer.cache.lastEntityExplosion = currentTime;
-                    lacPlayer.cache.vectorOnEntityExplosion = null;
-                }
+                lacPlayer.cache.lastBlockExplosion = System.currentTimeMillis();
+                lacPlayer.cache.vectorOnBlockExplosion = null;
                 return;
             }
     }
