@@ -81,18 +81,7 @@ public class ElytraC extends MovementCheck implements Listener {
         }
 
         int ping = lacPlayer.getPing();
-        if (ping >= 180 && cache.glidingTicks <= 12) {
-            buffer.put("glidingEvents", 0);
-            buffer.put("elytraFlags", 0);
-            return;
-        }
-
-        if (!event.isToWithinBlocksPassable() || !event.isFromWithinBlocksPassable()) {
-            buffer.put("glidingEvents", 0);
-            buffer.put("elytraFlags", 0);
-            return;
-        }
-        if (!event.isToDownBlocksPassable() || !event.isFromDownBlocksPassable()) {
+        if (cache.glidingTicks <= 20) {
             buffer.put("glidingEvents", 0);
             buffer.put("elytraFlags", 0);
             return;
@@ -104,6 +93,33 @@ public class ElytraC extends MovementCheck implements Listener {
 
         long currentTime = System.currentTimeMillis();
         if (currentTime - buffer.getLong("effectTime") < 1000) {
+            buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
+            return;
+        }
+
+        buffer.put("glidingEvents", buffer.getInt("glidingEvents") + 1);
+        if (buffer.getInt("glidingEvents") <= 1)
+            return;
+
+        double maxTickSpeed = TICK_SPEEDS.getOrDefault(cache.glidingTicks, Double.MAX_VALUE);
+        if (maxTickSpeed == Double.MAX_VALUE) return;
+        double maxEventSpeed = EVENT_SPEEDS.getOrDefault(buffer.getInt("glidingEvents"), Double.MAX_VALUE);
+        if (maxEventSpeed == Double.MAX_VALUE) return;
+
+        double horizontalSpeed = distanceHorizontal(event.getFrom(), event.getTo());
+        double averageHorizontalSpeed = distanceHorizontal(cache.history.onEvent.location.get(HistoryElement.FIRST), event.getTo()) / 2.0;
+
+        double pingAllowance = Math.min(Math.max((ping - 120) / 240.0, 0.0), 0.35);
+        if (Math.min(horizontalSpeed, averageHorizontalSpeed) < Math.max(maxTickSpeed, maxEventSpeed) * (1.6 + pingAllowance) + 0.35 + pingAllowance)
+            return;
+
+        if (!event.isToWithinBlocksPassable() || !event.isFromWithinBlocksPassable()) {
+            buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
+            return;
+        }
+        if (!event.isToDownBlocksPassable() || !event.isFromDownBlocksPassable()) {
             buffer.put("glidingEvents", 0);
             buffer.put("elytraFlags", 0);
             return;
@@ -133,24 +149,8 @@ public class ElytraC extends MovementCheck implements Listener {
                 return;
             }
 
-        buffer.put("glidingEvents", buffer.getInt("glidingEvents") + 1);
-        if (buffer.getInt("glidingEvents") <= 1)
-            return;
-
-        double maxTickSpeed = TICK_SPEEDS.getOrDefault(cache.glidingTicks, Double.MAX_VALUE);
-        if (maxTickSpeed == Double.MAX_VALUE) return;
-        double maxEventSpeed = EVENT_SPEEDS.getOrDefault(buffer.getInt("glidingEvents"), Double.MAX_VALUE);
-        if (maxEventSpeed == Double.MAX_VALUE) return;
-
-        double horizontalSpeed = distanceHorizontal(event.getFrom(), event.getTo());
-        double averageHorizontalSpeed = distanceHorizontal(cache.history.onEvent.location.get(HistoryElement.FIRST), event.getTo()) / 2.0;
-
-        double pingAllowance = Math.min(Math.max((ping - 120) / 240.0, 0.0), 0.35);
-        if (Math.min(horizontalSpeed, averageHorizontalSpeed) < Math.max(maxTickSpeed, maxEventSpeed) * (1.6 + pingAllowance) + 0.35 + pingAllowance)
-            return;
-
         long now = System.currentTimeMillis();
-        if (now - buffer.getLong("lastElytraSync") < 200L)
+        if (now - buffer.getLong("lastElytraSync") < 350L)
             return;
         buffer.put("lastElytraSync", now);
 
