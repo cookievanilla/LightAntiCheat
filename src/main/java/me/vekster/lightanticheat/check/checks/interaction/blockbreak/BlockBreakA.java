@@ -76,7 +76,7 @@ public class BlockBreakA extends InteractionCheck implements Listener {
 
             if (AureliumSkillsHook.isPrevented(player) ||
                     VeinMinerHook.isPrevented(player) ||
-                    McMMOHook.isPrevented(block.getType()))
+                    McMMOHook.isPrevented(player, block))
                 return;
 
             if (EnchantsSquaredHook.hasEnchantment(player, "Excavation", "Deforestation", "Harvesting"))

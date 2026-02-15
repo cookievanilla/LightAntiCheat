@@ -78,7 +78,7 @@ public class FastBreakA extends InteractionCheck implements Listener {
         Block block = event.getBlock();
         if (AureliumSkillsHook.isPrevented(player) ||
                 VeinMinerHook.isPrevented(player) ||
-                McMMOHook.isPrevented(block.getType()))
+                McMMOHook.isPrevented(player, block))
             return;
 
         Buffer buffer = getBuffer(player);
