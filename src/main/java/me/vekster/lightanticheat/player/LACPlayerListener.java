@@ -769,21 +769,24 @@ public class LACPlayerListener implements Listener {
                     asyncPlayers.put(player.getUniqueId(), lacPlayer);
                     PlayerCache cache = lacPlayer.cache;
                     Scheduler.entityThread(player, () -> {
-                        World asyncWorld = AsyncUtil.getWorld(player);
-                        World playerWorld = player.getWorld();
-                        if (!FoliaUtil.isStable(player) || asyncWorld == null || playerWorld == null ||
-                                !asyncWorld.getUID().equals(playerWorld.getUID()))
-                            return;
-                        cache.sneakingTicks = increase(player.isSneaking(), cache.sneakingTicks);
-                        cache.sprintingTicks = increase(player.isSprinting(), cache.sprintingTicks);
-                        cache.swimmingTicks = increase(lacPlayer.isSwimming(), cache.swimmingTicks);
-                        cache.climbingTicks = increase(lacPlayer.isClimbing(), cache.climbingTicks);
-                        cache.glidingTicks = increase(lacPlayer.isGliding(), cache.glidingTicks);
-                        cache.riptidingTicks = increase(lacPlayer.isRiptiding(), cache.riptidingTicks);
-                        cache.flyingTicks = increase(player.isFlying(), cache.flyingTicks);
-                        cache.blockingTicks = increase(player.isBlocking(), cache.blockingTicks);
-                        if (player.isInsideVehicle())
-                            cache.lastInsideVehicle = System.currentTimeMillis();
+                        try {
+                            World asyncWorld = AsyncUtil.getWorld(player);
+                            World playerWorld = player.getWorld();
+                            if (!FoliaUtil.isStable(player) || asyncWorld == null || playerWorld == null ||
+                                    !asyncWorld.getUID().equals(playerWorld.getUID()))
+                                return;
+                            cache.sneakingTicks = increase(player.isSneaking(), cache.sneakingTicks);
+                            cache.sprintingTicks = increase(player.isSprinting(), cache.sprintingTicks);
+                            cache.swimmingTicks = increase(lacPlayer.isSwimming(), cache.swimmingTicks);
+                            cache.climbingTicks = increase(lacPlayer.isClimbing(), cache.climbingTicks);
+                            cache.glidingTicks = increase(lacPlayer.isGliding(), cache.glidingTicks);
+                            cache.riptidingTicks = increase(lacPlayer.isRiptiding(), cache.riptidingTicks);
+                            cache.flyingTicks = increase(player.isFlying(), cache.flyingTicks);
+                            cache.blockingTicks = increase(player.isBlocking(), cache.blockingTicks);
+                            if (player.isInsideVehicle())
+                                cache.lastInsideVehicle = System.currentTimeMillis();
+                        } catch (IllegalStateException ignored) {
+                        }
                     });
                 });
                 setAsyncPlayers(asyncPlayers);
