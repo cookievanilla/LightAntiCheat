@@ -40,17 +40,21 @@ public class FastBreakA extends InteractionCheck implements Listener {
 
     static {
         BLOCK_HARDNESS.put(Material.STONE, 1.5D);
-        BLOCK_HARDNESS.put(VerUtil.material.get("DEEPSLATE"), 3.0D);
-
         BLOCK_REQUIRED_TOOL_TIER.put(Material.STONE, 1);
-        BLOCK_REQUIRED_TOOL_TIER.put(VerUtil.material.get("DEEPSLATE"), 1);
 
-        registerPickaxe(VerUtil.material.get("WOODEN_PICKAXE"), 2.0D, 1);
+        Material deepslate = VerUtil.material.get("DEEPSLATE");
+        if (deepslate != null) {
+            BLOCK_HARDNESS.put(deepslate, 3.0D);
+            BLOCK_REQUIRED_TOOL_TIER.put(deepslate, 1);
+        }
+
+        registerPickaxeIfPresent("WOODEN_PICKAXE", 2.0D, 1);
         registerPickaxe(Material.STONE_PICKAXE, 4.0D, 2);
         registerPickaxe(Material.IRON_PICKAXE, 6.0D, 3);
         registerPickaxe(Material.DIAMOND_PICKAXE, 8.0D, 4);
-        registerPickaxe(VerUtil.material.get("NETHERITE_PICKAXE"), 9.0D, 4);
-        registerPickaxe(VerUtil.material.get("GOLDEN_PICKAXE"), 12.0D, 1);
+        registerPickaxeIfPresent("NETHERITE_PICKAXE", 9.0D, 4);
+        registerPickaxeIfPresent("GOLDEN_PICKAXE", 12.0D, 1);
+        registerPickaxeIfPresent("GOLD_PICKAXE", 12.0D, 1);
     }
 
     public FastBreakA() {
@@ -166,6 +170,12 @@ public class FastBreakA extends InteractionCheck implements Listener {
     private static void registerPickaxe(Material tool, double speed, int tier) {
         TOOL_SPEED.put(tool, speed);
         TOOL_TIERS.put(tool, tier);
+    }
+
+    private static void registerPickaxeIfPresent(String materialKey, double speed, int tier) {
+        Material material = VerUtil.material.get(materialKey);
+        if (material != null)
+            registerPickaxe(material, speed, tier);
     }
 
     private long getExpectedMineDuration(Player player, Block block, ItemStack tool, int efficiencyLevel) {
