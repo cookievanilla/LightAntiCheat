@@ -15,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConnectionStabilityListener implements Listener {
 
     private static final ConcurrentHashMap<UUID, List<Integer>> PLAYERS = new ConcurrentHashMap<>();
+    private static final long TARGET_WINDOW_MILLIS = 2000L;
+    private static volatile long lastRotationTime = System.currentTimeMillis();
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
@@ -42,6 +44,10 @@ public class ConnectionStabilityListener implements Listener {
 
     public static void loadConnectionCalculator() {
         Scheduler.runTaskTimer(() -> {
+            long currentTime = System.currentTimeMillis();
+            long elapsedTime = Math.max(1L, currentTime - lastRotationTime);
+            lastRotationTime = currentTime;
+
             Set<UUID> onlinePlayers = new HashSet<>();
             for (Player player : Bukkit.getOnlinePlayers())
                 onlinePlayers.add(player.getUniqueId());
@@ -54,12 +60,13 @@ public class ConnectionStabilityListener implements Listener {
                     return true;
                 List<Integer> list = entry.getValue();
                 synchronized (list) {
-                    if (list.isEmpty()) {
+                    if (list.isEmpty())
                         list.addAll(Arrays.asList(0, 0, 0, 0));
-                    } else {
-                        list.add(0);
-                        list.remove(0);
-                    }
+
+                    int lastIndex = list.size() - 1;
+                    list.set(lastIndex, normalizeToTargetWindow(list.get(lastIndex), elapsedTime));
+                    list.add(0);
+                    list.remove(0);
                 }
                 return false;
             });
@@ -71,6 +78,7 @@ public class ConnectionStabilityListener implements Listener {
         for (Player player : Bukkit.getOnlinePlayers())
             onlinePlayers.add(player.getUniqueId());
 
+        lastRotationTime = System.currentTimeMillis();
         PLAYERS.keySet().removeIf(uuid -> !onlinePlayers.contains(uuid));
         for (UUID onlinePlayer : onlinePlayers)
             PLAYERS.putIfAbsent(onlinePlayer, createHistoryWindow());
@@ -79,6 +87,14 @@ public class ConnectionStabilityListener implements Listener {
 
     private static List<Integer> createHistoryWindow() {
         return new ArrayList<>(Arrays.asList(0, 0, 0, 0));
+    }
+
+
+    private static int normalizeToTargetWindow(int value, long elapsedTime) {
+        if (elapsedTime <= 0)
+            return value;
+        double normalized = value * (TARGET_WINDOW_MILLIS / (double) elapsedTime);
+        return (int) Math.max(0, Math.round(normalized));
     }
 
     public static ConnectionStability getConnectionStability(Player player) {
