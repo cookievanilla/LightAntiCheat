@@ -52,6 +52,8 @@ public class CriticalsB extends CombatCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -3)
             return;
         long time = System.currentTimeMillis();
+        if (hasRecentMobilityContext(cache, lacPlayer, time, 800, 1300, 1000, 1700, 1400, 2400))
+            return;
         if (time - cache.lastInsideVehicle <= 150 || time - cache.lastInWater <= 150 ||
                 time - cache.lastWasFished <= 4000 || time - cache.lastTeleport <= 700 ||
                 time - cache.lastRespawn <= 500 || time - cache.lastEntityVeryNearby <= 500 ||

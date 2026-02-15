@@ -77,6 +77,7 @@ public class FlightA extends MovementCheck implements Listener {
                 time - cache.lastFlight > 750 &&
                 time - cache.lastGliding > 2000 && time - cache.lastRiptiding > 3500 &&
                 !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasRecentMobilityContext(cache, lacPlayer, time, 900, 1500, 1200, 2000, 1600, 2600) &&
                 !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 

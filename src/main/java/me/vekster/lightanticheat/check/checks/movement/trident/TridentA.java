@@ -49,6 +49,7 @@ public class TridentA extends MovementCheck implements Listener {
                 time - cache.lastStrongKbVelocity > 2500 && time - cache.lastStrongAirKbVelocity > 5000 &&
                 time - cache.lastFlight > 750 &&
                 !hasRecent121MobilityBoost(cache, time, false) &&
+                !hasRecentMobilityContext(cache, lacPlayer, time, 900, 1500, 1200, 2000, 1600, 2600) &&
                 !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
