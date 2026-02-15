@@ -208,12 +208,18 @@ public class LACPlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void lastGlidingRiptidingFlight(LACPlayerMoveEvent event) {
+        long now = System.currentTimeMillis();
+        PlayerCache cache = event.getLacPlayer().cache;
         if (event.isPlayerGliding())
-            event.getLacPlayer().cache.lastGliding = System.currentTimeMillis();
-        if (event.isPlayerRiptiding())
-            event.getLacPlayer().cache.lastRiptiding = System.currentTimeMillis();
+            cache.lastGliding = now;
+        if (event.isPlayerRiptiding()) {
+            cache.lastRiptiding = now;
+            if (!cache.hadRiptiding)
+                cache.lastRiptideDash = now;
+        }
+        cache.hadRiptiding = event.isPlayerRiptiding();
         if (event.isPlayerFlying())
-            event.getLacPlayer().cache.lastFlight = System.currentTimeMillis();
+            cache.lastFlight = now;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -497,6 +503,23 @@ public class LACPlayerListener implements Listener {
             lacPlayer.cache.lastWindBurst = System.currentTimeMillis();
             lacPlayer.cache.lastWindBurstNotVanilla = System.currentTimeMillis();
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void lastCrystalAndWindChargeImpact(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player))
+            return;
+        Player player = (Player) event.getEntity();
+        LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
+        if (lacPlayer == null)
+            return;
+
+        EntityType damagerType = event.getDamager().getType();
+        long now = System.currentTimeMillis();
+        if ("ENDER_CRYSTAL".equals(damagerType.name()))
+            lacPlayer.cache.lastEndCrystalImpact = now;
+        if (damagerType == VerUtil.entityTypes.get("WIND_CHARGE"))
+            lacPlayer.cache.lastWindChargeImpact = now;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -797,6 +820,16 @@ public class LACPlayerListener implements Listener {
                             }
                             cache.glidingTicks = increase(lacPlayer.isGliding(), cache.glidingTicks);
                             cache.riptidingTicks = increase(lacPlayer.isRiptiding(), cache.riptidingTicks);
+                            ItemStack chest = lacPlayer.getArmorPiece(EquipmentSlot.CHEST);
+                            Material chestType = chest == null ? Material.AIR : chest.getType();
+                            boolean hasElytraEquipped = chestType == VerUtil.material.get("ELYTRA");
+                            if (cache.hadElytraEquipped != hasElytraEquipped) {
+                                if (hasElytraEquipped)
+                                    cache.lastElytraEquip = System.currentTimeMillis();
+                                else
+                                    cache.lastElytraUnequip = System.currentTimeMillis();
+                                cache.hadElytraEquipped = hasElytraEquipped;
+                            }
                             cache.flyingTicks = increase(player.isFlying(), cache.flyingTicks);
                             cache.blockingTicks = increase(player.isBlocking(), cache.blockingTicks);
                             if (player.isInsideVehicle())

@@ -83,6 +83,33 @@ public abstract class MovementCheck extends Check {
         return baseBuffer + dynamicIncrease;
     }
 
+
+    protected boolean isHighPingPlayer(LACPlayer lacPlayer) {
+        return Math.max(lacPlayer.getPing(true), 0) >= 220;
+    }
+
+    protected long getPingAwareWindow(LACPlayer lacPlayer, long normalWindow, long highPingWindow) {
+        return isHighPingPlayer(lacPlayer) ? highPingWindow : normalWindow;
+    }
+
+    protected boolean hasRecentMobilityContext(PlayerCache cache, LACPlayer lacPlayer, long time,
+                                               long normalElytraWindow,
+                                               long highPingElytraWindow,
+                                               long normalRiptideWindow,
+                                               long highPingRiptideWindow,
+                                               long normalExplosionWindow,
+                                               long highPingExplosionWindow) {
+        long elytraWindow = getPingAwareWindow(lacPlayer, normalElytraWindow, highPingElytraWindow);
+        long riptideWindow = getPingAwareWindow(lacPlayer, normalRiptideWindow, highPingRiptideWindow);
+        long explosionWindow = getPingAwareWindow(lacPlayer, normalExplosionWindow, highPingExplosionWindow);
+
+        return time - cache.lastElytraEquip <= elytraWindow ||
+                time - cache.lastElytraUnequip <= elytraWindow ||
+                time - cache.lastRiptideDash <= riptideWindow ||
+                time - cache.lastEndCrystalImpact <= explosionWindow ||
+                time - cache.lastWindChargeImpact <= explosionWindow;
+    }
+
     protected boolean hasInstabilityCooldown(PlayerCache cache, long time, long cooldownWindow) {
         long climbingTransitionWindow = Math.min(cooldownWindow, 250);
         long stateChangeWindow = Math.min(cooldownWindow, 400);

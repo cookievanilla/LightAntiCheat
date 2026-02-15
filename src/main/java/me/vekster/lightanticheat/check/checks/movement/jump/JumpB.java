@@ -56,6 +56,7 @@ public class JumpB extends MovementCheck implements Listener {
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 10 * 1000 &&
                 time - cache.lastFlight > 1200 &&
                 !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasRecentMobilityContext(cache, lacPlayer, time, 900, 1500, 1200, 2000, 1600, 2600) &&
                 !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
