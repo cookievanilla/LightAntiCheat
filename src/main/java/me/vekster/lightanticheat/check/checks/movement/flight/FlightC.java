@@ -45,7 +45,7 @@ public class FlightC extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -5)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 700 &&
@@ -140,7 +140,7 @@ public class FlightC extends MovementCheck implements Listener {
         }
 
         buffer.put("flightTicks", buffer.getInt("flightTicks") + 1);
-        int requiredFlightTicks = getConnectionBufferRequirement(lacPlayer, player, 2);
+        int requiredFlightTicks = getConnectionBufferRequirement(lacPlayer, 2);
         if (buffer.getInt("flightTicks") <= requiredFlightTicks)
             return;
         boolean isBedrockPlayer = FloodgateHook.isBedrockPlayer(player, true);
@@ -201,7 +201,7 @@ public class FlightC extends MovementCheck implements Listener {
                 return;
 
             buffer.put("flightFlags", buffer.getInt("flightFlags") + 1);
-            int requiredFlightFlags = getConnectionBufferRequirement(lacPlayer, player, 1);
+            int requiredFlightFlags = getConnectionBufferRequirement(lacPlayer, 1);
             if (buffer.getInt("flightFlags") <= requiredFlightFlags)
                 return;
 

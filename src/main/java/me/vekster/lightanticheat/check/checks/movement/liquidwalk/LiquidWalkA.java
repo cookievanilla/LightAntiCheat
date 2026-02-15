@@ -36,7 +36,7 @@ public class LiquidWalkA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -4)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 250 && time - cache.lastKnockbackNotVanilla > 1000 &&
                 time - cache.lastWasFished > 1000 && time - cache.lastTeleport > 500 &&

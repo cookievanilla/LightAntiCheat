@@ -43,7 +43,7 @@ public class JumpB extends MovementCheck implements Listener {
                 cache.glidingTicks >= -6 || cache.riptidingTicks >= -10)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         return time - cache.lastInsideVehicle > 300 && time - cache.lastInWater > 300 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 5000 && time - cache.lastTeleport > 700 &&
@@ -205,7 +205,7 @@ public class JumpB extends MovementCheck implements Listener {
                 return;
 
             buffer.put("jumpFlags", buffer.getInt("jumpFlags") + 1);
-            int requiredJumpFlags = getConnectionBufferRequirement(lacPlayer, player, 1);
+            int requiredJumpFlags = getConnectionBufferRequirement(lacPlayer, 1);
             if (buffer.getInt("jumpFlags") <= requiredJumpFlags)
                 return;
             callViolationEventIfRepeat(player, lacPlayer, event, buffer, Main.getBufferDurationMils() - 1000L);

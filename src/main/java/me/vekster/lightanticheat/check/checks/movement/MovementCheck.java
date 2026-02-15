@@ -59,7 +59,7 @@ public abstract class MovementCheck extends Check {
     }
 
 
-    protected long getDynamicGraceWindow(LACPlayer lacPlayer, Player player, long baseWindow) {
+    protected long getDynamicGraceWindow(LACPlayer lacPlayer, long baseWindow) {
         int ping = Math.max(lacPlayer.getPing(true), 0);
         long pingGrace = Math.max(0, ping - 120L);
 
@@ -73,7 +73,7 @@ public abstract class MovementCheck extends Check {
         return baseWindow + Math.min(1200, pingGrace + jitterGrace);
     }
 
-    protected int getConnectionBufferRequirement(LACPlayer lacPlayer, Player player, int baseBuffer) {
+    protected int getConnectionBufferRequirement(LACPlayer lacPlayer, int baseBuffer) {
         int ping = Math.max(lacPlayer.getPing(true), 0);
         int pingBuffer = ping > 350 ? 3 : ping > 220 ? 2 : ping > 140 ? 1 : 0;
 

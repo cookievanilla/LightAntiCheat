@@ -49,7 +49,7 @@ public class SpeedC extends MovementCheck implements Listener {
                 cache.glidingTicks >= -7 || cache.riptidingTicks >= -8)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 500);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 500);
         return time - cache.lastInsideVehicle > 200 && time - cache.lastInWater > 200 &&
                 time - cache.lastKnockback > 1700 && time - cache.lastKnockbackNotVanilla > 6000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 1000 &&
@@ -162,7 +162,7 @@ public class SpeedC extends MovementCheck implements Listener {
 
 
         buffer.put("flags", buffer.getInt("flags") + 1);
-        int requiredFlags = getConnectionBufferRequirement(lacPlayer, player, 3);
+        int requiredFlags = getConnectionBufferRequirement(lacPlayer, 3);
         long timeSinceEntityNearby = currentTime - lacPlayer.cache.lastEntityNearby;
         if (timeSinceEntityNearby <= 1000)
             requiredFlags += 1;

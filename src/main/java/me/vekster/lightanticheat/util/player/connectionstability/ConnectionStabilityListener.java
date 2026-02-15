@@ -33,6 +33,8 @@ public class ConnectionStabilityListener implements Listener {
         if (list == null)
             return;
         synchronized (list) {
+            if (list.isEmpty())
+                list.addAll(Arrays.asList(0, 0, 0, 0));
             int lastIndex = list.size() - 1;
             list.set(lastIndex, list.get(lastIndex) + 1);
         }
@@ -52,8 +54,12 @@ public class ConnectionStabilityListener implements Listener {
                     return true;
                 List<Integer> list = entry.getValue();
                 synchronized (list) {
-                    list.add(0);
-                    list.remove(0);
+                    if (list.isEmpty()) {
+                        list.addAll(Arrays.asList(0, 0, 0, 0));
+                    } else {
+                        list.add(0);
+                        list.remove(0);
+                    }
                 }
                 return false;
             });

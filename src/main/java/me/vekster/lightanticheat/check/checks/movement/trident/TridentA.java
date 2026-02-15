@@ -35,7 +35,7 @@ public class TridentA extends MovementCheck implements Listener {
         if (cache.flyingTicks >= -4 || cache.climbingTicks >= -2)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         return time - cache.lastInsideVehicle > 150 &&
                 time - cache.lastKnockback > 500 && time - cache.lastKnockbackNotVanilla > 2000 &&
                 time - cache.lastWasFished > 3000 && time - cache.lastTeleport > 500 &&

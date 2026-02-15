@@ -42,7 +42,7 @@ public class ElytraC extends MovementCheck implements Listener {
         if (cache.flyingTicks >= -5 || cache.climbingTicks >= -2 || cache.glidingTicks <= 3)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 600);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 600);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 500 &&
@@ -142,7 +142,7 @@ public class ElytraC extends MovementCheck implements Listener {
 
         Scheduler.runTask(true, () -> {
             buffer.put("elytraFlags", buffer.getInt("elytraFlags") + 1);
-            int requiredElytraFlags = getConnectionBufferRequirement(lacPlayer, player, 1);
+            int requiredElytraFlags = getConnectionBufferRequirement(lacPlayer, 1);
             if (buffer.getInt("elytraFlags") <= requiredElytraFlags)
                 return;
             callViolationEventIfRepeat(player, lacPlayer, event, buffer, Main.getBufferDurationMils() - 1000L);

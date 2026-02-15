@@ -40,7 +40,7 @@ public class FastClimbA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -3)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 350);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 350);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 500 && time - cache.lastKnockbackNotVanilla > 2000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 500 &&
@@ -159,7 +159,7 @@ public class FastClimbA extends MovementCheck implements Listener {
 
         Scheduler.runTask(true, () -> {
             buffer.put("climbFlags", buffer.getInt("climbFlags") + 1);
-            int requiredClimbFlags = getConnectionBufferRequirement(lacPlayer, player, 1);
+            int requiredClimbFlags = getConnectionBufferRequirement(lacPlayer, 1);
             if (buffer.getInt("climbFlags") <= requiredClimbFlags)
                 return;
             callViolationEvent(player, lacPlayer, event);

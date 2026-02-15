@@ -47,7 +47,7 @@ public class SpeedA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -5 || cache.riptidingTicks >= -6)
             return false;
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 1500 && time - cache.lastKnockbackNotVanilla > 5000 &&
                 time - cache.lastWasFished > 3000 && time - cache.lastTeleport > 600 &&
@@ -255,7 +255,7 @@ public class SpeedA extends MovementCheck implements Listener {
             return;
         }
         long time = System.currentTimeMillis();
-        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         boolean conditionAllowed = time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 1500 && time - cache.lastKnockbackNotVanilla > 5000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 700 &&
