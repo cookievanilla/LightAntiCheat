@@ -164,7 +164,7 @@ public class SpeedC extends MovementCheck implements Listener {
         buffer.put("flags", buffer.getInt("flags") + 1);
         int requiredFlags = getConnectionBufferRequirement(lacPlayer, player, 3);
         long timeSinceEntityNearby = currentTime - lacPlayer.cache.lastEntityNearby;
-        if (timeSinceEntityNearby > 1000)
+        if (timeSinceEntityNearby <= 1000)
             requiredFlags += 1;
         if (buffer.getInt("flags") <= requiredFlags)
             return;

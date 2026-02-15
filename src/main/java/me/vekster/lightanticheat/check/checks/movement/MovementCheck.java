@@ -51,7 +51,8 @@ public abstract class MovementCheck extends Check {
 
     private ConnectionStability getConnectionStabilitySafe(Player player) {
         try {
-            return ConnectionStabilityListener.getConnectionStability(player);
+            ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
+            return stability != null ? stability : ConnectionStability.HIGH;
         } catch (RuntimeException ignored) {
             return ConnectionStability.HIGH;
         }
@@ -82,11 +83,12 @@ public abstract class MovementCheck extends Check {
     }
 
     protected boolean hasInstabilityCooldown(PlayerCache cache, long time, long cooldownWindow) {
+        long climbingTransitionWindow = Math.min(cooldownWindow, 250);
         return time - cache.lastWindCharge <= cooldownWindow ||
                 time - cache.lastWindChargeReceive <= cooldownWindow ||
                 time - cache.lastWindBurst <= cooldownWindow ||
                 time - cache.lastWindBurstNotVanilla <= cooldownWindow + 400 ||
-                time - cache.lastClimbingTransition <= cooldownWindow ||
+                time - cache.lastClimbingTransition <= climbingTransitionWindow ||
                 time - cache.lastTeleport <= cooldownWindow;
     }
 
