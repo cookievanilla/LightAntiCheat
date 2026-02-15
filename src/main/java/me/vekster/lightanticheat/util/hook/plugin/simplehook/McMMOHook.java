@@ -22,9 +22,11 @@ public class McMMOHook extends HookUtil {
             "gigaDrillBreakerEnabled",
             "greenTerraEnabled"
     };
+    private static final long ABILITY_API_RETRY_DELAY_MS = 5000;
 
     private static volatile boolean abilityApiInitialized = false;
     private static volatile Method[] blockBreakAbilityMethods = null;
+    private static volatile long lastAbilityApiInitAttempt = 0;
 
     /**
      * Prefer mcMMO runtime API for active abilities when available.
@@ -80,16 +82,22 @@ public class McMMOHook extends HookUtil {
         if (abilityApiInitialized)
             return blockBreakAbilityMethods;
 
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastAbilityApiInitAttempt < ABILITY_API_RETRY_DELAY_MS)
+            return null;
+
         synchronized (McMMOHook.class) {
             if (abilityApiInitialized)
                 return blockBreakAbilityMethods;
 
-            Class<?> abilityApiClass = loadAbilityApiClass();
-            if (abilityApiClass == null) {
-                abilityApiInitialized = true;
-                blockBreakAbilityMethods = null;
+            currentTime = System.currentTimeMillis();
+            if (currentTime - lastAbilityApiInitAttempt < ABILITY_API_RETRY_DELAY_MS)
                 return null;
-            }
+            lastAbilityApiInitAttempt = currentTime;
+
+            Class<?> abilityApiClass = loadAbilityApiClass();
+            if (abilityApiClass == null)
+                return null;
 
             List<Method> methods = new ArrayList<>();
             for (String methodName : BLOCK_BREAK_ABILITY_METHODS) {
