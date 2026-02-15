@@ -104,6 +104,9 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
 
         Buffer buffer = getBuffer(player, true);
+
+        if (isMicroTeleportExempt(lacPlayer, cache, buffer, 1000))
+            return;
         if (System.currentTimeMillis() - buffer.getLong("lastTeleport") < 1000)
             return;
 
@@ -139,6 +142,9 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
 
         Buffer buffer = getBuffer(player, true);
+
+        if (isMicroTeleportExempt(lacPlayer, cache, buffer, 1000))
+            return;
         if (System.currentTimeMillis() - buffer.getLong("lastTeleport") < 1000)
             return;
 
@@ -172,6 +178,9 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
 
         if (!isConditionAllowed(player, lacPlayer, event))
+            return;
+
+        if (isMicroTeleportExempt(lacPlayer, cache, buffer, 600))
             return;
 
         long currentTime = System.currentTimeMillis();
@@ -228,8 +237,23 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
         }
 
-        if (hSpeed < maxSpeed)
+        double horizontalJump = distanceHorizontal(event.getFrom(), event.getTo());
+        boolean microTeleportSuspicion = isMicroTeleportSuspicious(event, lacPlayer, cache, buffer, maxSpeed, horizontalJump);
+
+        if (hSpeed < maxSpeed && !microTeleportSuspicion)
             return;
+
+        if (microTeleportSuspicion) {
+            event.setCancelled(true);
+            FoliaUtil.teleportPlayer(player, event.getFrom());
+
+            Scheduler.runTaskLater(() -> {
+                if (isMicroTeleportExempt(lacPlayer, cache, buffer, 1000))
+                    return;
+                callViolationEventIfRepeat(player, lacPlayer, event, buffer, 1200);
+            }, 1);
+            return;
+        }
 
         buffer.put("flags", buffer.getInt("flags") + 1);
         if (buffer.getInt("flags") <= 3)
@@ -238,6 +262,60 @@ public class SpeedE extends MovementCheck implements Listener {
         Scheduler.runTask(true, () -> {
             callViolationEvent(player, lacPlayer, event);
         });
+    }
+
+    private boolean isMicroTeleportExempt(LACPlayer lacPlayer, PlayerCache cache, Buffer buffer, long baseTeleportWindow) {
+        long currentTime = System.currentTimeMillis();
+        long dynamicTeleportWindow = Math.max(baseTeleportWindow, getDynamicGraceWindow(lacPlayer, baseTeleportWindow));
+        if (currentTime - cache.lastTeleport < dynamicTeleportWindow)
+            return true;
+        if (currentTime - buffer.getLong("lastTeleport") < dynamicTeleportWindow)
+            return true;
+        if (currentTime - cache.lastWorldChange < 600 ||
+                currentTime - cache.lastRespawn < 750 ||
+                currentTime - cache.lastGamemodeChange < 400)
+            return true;
+
+        int ping = Math.max(lacPlayer.getPing(true), 0);
+        long lastMovement = currentTime - buffer.getLong("lastMovement");
+        return ping > 350 || ping > 220 && lastMovement > 280;
+    }
+
+    private boolean isMicroTeleportSuspicious(LACAsyncPlayerMoveEvent event, LACPlayer lacPlayer, PlayerCache cache,
+                                              Buffer buffer, double normalizedMaxSpeed, double currentJump) {
+        long currentTime = System.currentTimeMillis();
+        long window = isHighPingPlayer(lacPlayer) ? 350 : 220;
+        if (currentTime - buffer.getLong("microTeleportWindowStart") > window) {
+            buffer.put("microTeleportWindowStart", currentTime);
+            buffer.put("microTeleportHorizontalSum", 0.0);
+            buffer.put("microTeleportSamples", 0);
+            buffer.put("microTeleportPhysicsGaps", 0);
+        }
+
+        double walkFactor = Math.max(0.35, event.getPlayer().getWalkSpeed() / 0.2);
+        double maxPerTick = normalizedMaxSpeed * walkFactor;
+
+        buffer.put("microTeleportHorizontalSum", buffer.getDouble("microTeleportHorizontalSum") + currentJump);
+        buffer.put("microTeleportSamples", buffer.getInt("microTeleportSamples") + 1);
+
+        double eventStep = distanceHorizontal(cache.history.onEvent.location.get(HistoryElement.FROM),
+                cache.history.onEvent.location.get(HistoryElement.FIRST));
+        double packetStep = distanceHorizontal(cache.history.onPacket.location.get(HistoryElement.FROM),
+                cache.history.onPacket.location.get(HistoryElement.FIRST));
+        double recentExpected = Math.max(eventStep, packetStep);
+        boolean physicsGap = currentJump > Math.max(maxPerTick * 1.3, recentExpected * 2.75 + 0.35);
+        if (physicsGap)
+            buffer.put("microTeleportPhysicsGaps", buffer.getInt("microTeleportPhysicsGaps") + 1);
+
+        int samples = buffer.getInt("microTeleportSamples");
+        double horizontalSum = buffer.getDouble("microTeleportHorizontalSum");
+        int requiredSamples = isHighPingPlayer(lacPlayer) ? 5 : 4;
+        if (samples < requiredSamples)
+            return false;
+
+        int dynamicBuffer = getConnectionBufferRequirement(lacPlayer, 0);
+        double maxKinematicSum = maxPerTick * samples + 0.35 + dynamicBuffer * 0.12;
+        return horizontalSum > maxKinematicSum && buffer.getInt("microTeleportPhysicsGaps") >= 2;
     }
 
     @EventHandler
