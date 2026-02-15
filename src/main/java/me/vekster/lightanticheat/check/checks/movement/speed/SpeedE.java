@@ -13,6 +13,7 @@ import me.vekster.lightanticheat.util.hook.plugin.FloodgateHook;
 import me.vekster.lightanticheat.util.scheduler.Scheduler;
 import me.vekster.lightanticheat.version.VerUtil;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -25,6 +26,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The absolute horizontal, vertical and absolute speed limiter
@@ -342,11 +344,33 @@ public class SpeedE extends MovementCheck implements Listener {
     }
 
     private boolean isOnIceSurface(LACAsyncPlayerMoveEvent event) {
-        if (event.isToOnIce() || event.isFromOnIce())
-            return true;
+        Set<Block> toDownBlocks = event.getToDownBlocks();
+        if (toDownBlocks != null) {
+            for (Block block : toDownBlocks) {
+                if (block != null && isIce(block.getType()))
+                    return true;
+            }
+        }
+
+        Set<Block> fromDownBlocks = event.getFromDownBlocks();
+        if (fromDownBlocks != null) {
+            for (Block block : fromDownBlocks) {
+                if (block != null && isIce(block.getType()))
+                    return true;
+            }
+        }
+
         return false;
     }
 
+    private boolean isIce(Material material) {
+        if (material == null)
+            return false;
+        return material == VerUtil.material.get("ICE") ||
+                material == VerUtil.material.get("PACKED_ICE") ||
+                material == VerUtil.material.get("BLUE_ICE") ||
+                material == VerUtil.material.get("FROSTED_ICE");
+    }
 
     private boolean isMicroTeleportSuspicious(LACAsyncPlayerMoveEvent event, LACPlayer lacPlayer, PlayerCache cache,
                                               Buffer buffer, double microCapPerTick, double currentJump) {
