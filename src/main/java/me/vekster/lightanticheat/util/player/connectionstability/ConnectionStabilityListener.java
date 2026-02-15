@@ -17,16 +17,19 @@ public class ConnectionStabilityListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        PLAYERS.put(event.getPlayer().getUniqueId(), new LinkedList<>(Arrays.asList(0, 0, 0, 0)));
+        PLAYERS.put(event.getPlayer().getUniqueId(), Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
     }
 
     @EventHandler
     public void onAsyncMovement(LACAsyncPlayerMoveEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
-        if (!PLAYERS.containsKey(uuid))
-            return;
         List<Integer> list = PLAYERS.get(uuid);
-        list.set(list.size() - 1, list.get(list.size() - 1) + 1);
+        if (list == null)
+            return;
+        synchronized (list) {
+            int lastIndex = list.size() - 1;
+            list.set(lastIndex, list.get(lastIndex) + 1);
+        }
     }
 
     public static void loadConnectionCalculator() {
@@ -37,8 +40,10 @@ public class ConnectionStabilityListener implements Listener {
                     if (Bukkit.getPlayer(entry.getKey()) == null)
                         return true;
                     List<Integer> list = entry.getValue();
-                    list.add(0);
-                    list.remove(0);
+                    synchronized (list) {
+                        list.add(0);
+                        list.remove(0);
+                    }
                     return false;
                 });
             }
@@ -47,7 +52,7 @@ public class ConnectionStabilityListener implements Listener {
 
     public static void loadConnectionCalculatorOnReload() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            PLAYERS.put(player.getUniqueId(), new LinkedList<>(Arrays.asList(0, 0, 0, 0)));
+            PLAYERS.put(player.getUniqueId(), Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
         }
     }
 
@@ -56,12 +61,16 @@ public class ConnectionStabilityListener implements Listener {
     }
 
     public static ConnectionStability getConnectionStability(UUID uuid) {
-        if (!PLAYERS.containsKey(uuid))
-            return ConnectionStability.HIGH;
         List<Integer> list = PLAYERS.get(uuid);
-        int max = (int) Math.floor(list.stream()
+        if (list == null)
+            return ConnectionStability.HIGH;
+        List<Integer> snapshot;
+        synchronized (list) {
+            snapshot = new ArrayList<>(list);
+        }
+        int max = (int) Math.floor(snapshot.stream()
                 .mapToInt(v -> v)
-                .max().orElseThrow(NoSuchElementException::new)
+                .max().orElse(0)
                 / 2.0);
         if (max <= 25)
             return ConnectionStability.HIGH;

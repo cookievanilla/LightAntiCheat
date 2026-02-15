@@ -51,7 +51,7 @@ public abstract class MovementCheck extends Check {
 
     private ConnectionStability getConnectionStabilitySafe(LACPlayer lacPlayer) {
         try {
-            ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(lacPlayer.uuid);
+            ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(lacPlayer.getUuid());
             return stability != null ? stability : ConnectionStability.HIGH;
         } catch (RuntimeException | LinkageError ignored) {
             return ConnectionStability.HIGH;
