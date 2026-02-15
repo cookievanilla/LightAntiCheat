@@ -198,7 +198,7 @@ public class FastBreakA extends InteractionCheck implements Listener {
         if (hasteLevel > 0)
             speedMultiplier *= 1.0D + hasteLevel * 0.2D;
 
-        PotionEffectType fatigueType = VerUtil.potions.getOrDefault("MINING_FATIGUE", PotionEffectType.SLOW_DIGGING);
+        PotionEffectType fatigueType = VerUtil.potions.getOrDefault("MINING_FATIGUE", PotionEffectType.MINING_FATIGUE);
         if (fatigueType != null) {
             int fatigueLevel = getEffectAmplifier(player, fatigueType);
             if (fatigueLevel > 0)
@@ -255,7 +255,7 @@ public class FastBreakA extends InteractionCheck implements Listener {
 
     private int getEnvironmentSignature(Player player) {
         int hasteLevel = getEffectAmplifier(player, PotionEffectType.HASTE);
-        PotionEffectType fatigueType = VerUtil.potions.getOrDefault("MINING_FATIGUE", PotionEffectType.SLOW_DIGGING);
+        PotionEffectType fatigueType = VerUtil.potions.getOrDefault("MINING_FATIGUE", PotionEffectType.MINING_FATIGUE);
         int fatigueLevel = fatigueType == null ? 0 : getEffectAmplifier(player, fatigueType);
         int underwater = isUnderwater(player) ? 1 : 0;
         int aquaAffinity = hasAquaAffinity(player) ? 1 : 0;
