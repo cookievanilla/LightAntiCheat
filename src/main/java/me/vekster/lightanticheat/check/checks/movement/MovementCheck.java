@@ -53,7 +53,7 @@ public abstract class MovementCheck extends Check {
         try {
             ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
             return stability != null ? stability : ConnectionStability.HIGH;
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException | LinkageError ignored) {
             return ConnectionStability.HIGH;
         }
     }
@@ -84,12 +84,16 @@ public abstract class MovementCheck extends Check {
 
     protected boolean hasInstabilityCooldown(PlayerCache cache, long time, long cooldownWindow) {
         long climbingTransitionWindow = Math.min(cooldownWindow, 250);
+        long stateChangeWindow = Math.min(cooldownWindow, 400);
         return time - cache.lastWindCharge <= cooldownWindow ||
                 time - cache.lastWindChargeReceive <= cooldownWindow ||
                 time - cache.lastWindBurst <= cooldownWindow ||
                 time - cache.lastWindBurstNotVanilla <= cooldownWindow + 400 ||
                 time - cache.lastClimbingTransition <= climbingTransitionWindow ||
-                time - cache.lastTeleport <= cooldownWindow;
+                time - cache.lastTeleport <= cooldownWindow ||
+                time - cache.lastWorldChange <= stateChangeWindow ||
+                time - cache.lastRespawn <= stateChangeWindow ||
+                time - cache.lastGamemodeChange <= stateChangeWindow;
     }
 
     public boolean isPingGlidingPossible(Player player, PlayerCache cache) {
