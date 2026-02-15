@@ -755,9 +755,7 @@ public class LACPlayerListener implements Listener {
 
         }
         if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-            long now = System.currentTimeMillis();
-            lacPlayer.cache.lastEntityExplosion = now;
-            lacPlayer.cache.lastEndCrystalImpact = now;
+            lacPlayer.cache.lastEntityExplosion = System.currentTimeMillis();
             lacPlayer.cache.vectorOnEntityExplosion = null;
         }
     }
@@ -811,7 +809,9 @@ public class LACPlayerListener implements Listener {
                             }
                             cache.glidingTicks = increase(lacPlayer.isGliding(), cache.glidingTicks);
                             cache.riptidingTicks = increase(lacPlayer.isRiptiding(), cache.riptidingTicks);
-                            boolean hasElytraEquipped = lacPlayer.getArmorPiece(EquipmentSlot.CHEST).getType() == VerUtil.material.get("ELYTRA");
+                            ItemStack chest = lacPlayer.getArmorPiece(EquipmentSlot.CHEST);
+                            Material chestType = chest == null ? Material.AIR : chest.getType();
+                            boolean hasElytraEquipped = chestType == VerUtil.material.get("ELYTRA");
                             if (cache.hadElytraEquipped != hasElytraEquipped) {
                                 if (hasElytraEquipped)
                                     cache.lastElytraEquip = System.currentTimeMillis();
