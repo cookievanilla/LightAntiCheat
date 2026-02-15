@@ -160,9 +160,9 @@ public class VerPlayer {
 
     @SecureAsync
     public static boolean isClimbing(Player player) {
-        if (!isPlayerStableForRegion(player))
-            return false;
         try {
+            if (!isPlayerStableForRegion(player))
+                return false;
             return VerUtil.multiVersion.isClimbing(player);
         } catch (IllegalStateException ignored) {
             return false;
@@ -175,13 +175,17 @@ public class VerPlayer {
     }
 
     private static boolean isPlayerStableForRegion(Player player) {
-        if (!FoliaUtil.isStable(player))
+        try {
+            if (!FoliaUtil.isStable(player))
+                return false;
+            World asyncWorld = AsyncUtil.getWorld(player);
+            World playerWorld = player.getWorld();
+            if (asyncWorld == null || playerWorld == null)
+                return false;
+            return asyncWorld.getUID().equals(playerWorld.getUID());
+        } catch (IllegalStateException ignored) {
             return false;
-        World asyncWorld = AsyncUtil.getWorld(player);
-        World playerWorld = player.getWorld();
-        if (asyncWorld == null || playerWorld == null)
-            return false;
-        return asyncWorld.getUID().equals(playerWorld.getUID());
+        }
     }
 
     @SecureAsync
