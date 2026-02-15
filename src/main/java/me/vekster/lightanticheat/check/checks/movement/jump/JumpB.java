@@ -139,11 +139,13 @@ public class JumpB extends MovementCheck implements Listener {
         PlayerCacheHistory<Location> packetHistory = history.onPacket.location;
         double previousEventSpeed = distanceVertical(eventHistory.get(HistoryElement.FIRST), eventHistory.get(HistoryElement.FROM));
         double eventSpeed = distanceVertical(eventHistory.get(HistoryElement.FROM), event.getTo());
+        // Packet history does not include event#getTo(), so we compare the two latest packet deltas:
+        // SECOND -> FIRST (previous packet delta) and FIRST -> FROM (current packet delta).
         double previousPacketSpeed = distanceVertical(packetHistory.get(HistoryElement.SECOND), packetHistory.get(HistoryElement.FIRST));
-        double packetSpeed = distanceVertical(packetHistory.get(HistoryElement.FIRST), packetHistory.get(HistoryElement.FROM));
+        double currentPacketSpeed = distanceVertical(packetHistory.get(HistoryElement.FIRST), packetHistory.get(HistoryElement.FROM));
 
         if (previousEventSpeed <= 0 || eventSpeed <= 0 || previousEventSpeed < eventSpeed ||
-                previousPacketSpeed <= 0 || packetSpeed <= 0 || previousPacketSpeed < packetSpeed) {
+                previousPacketSpeed <= 0 || currentPacketSpeed <= 0 || previousPacketSpeed < currentPacketSpeed) {
             buffer.put("jumpHeight", 0.0);
             return;
         }
