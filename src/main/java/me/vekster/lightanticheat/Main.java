@@ -80,7 +80,8 @@ public class Main extends JavaPlugin {
     private static final long BUFFER_DURATION_MILS = 20 * 1000L;
     private static final int PLUGIN_ID = 112053;
     private static final int STATS_ID = 12841;
-    private Set<CheckName> registeredCheckNames;
+    private final Set<CheckName> registeredCheckNames = EnumSet.noneOf(CheckName.class);
+    private boolean bulkRegistering;
 
     @Override
     public void onEnable() {
@@ -128,7 +129,8 @@ public class Main extends JavaPlugin {
         Updater.loadUpdateChecker();
         registerListener(new Updater());
 
-        registeredCheckNames = EnumSet.noneOf(CheckName.class);
+        registeredCheckNames.clear();
+        bulkRegistering = true;
         try {
             registerCheckListener(new FlightA());
             registerCheckListener(new FlightB());
@@ -188,7 +190,7 @@ public class Main extends JavaPlugin {
             registerCheckListener(new AutoBotA());
             registerCheckListener(new SkinBlinkerA());
         } finally {
-            registeredCheckNames = null;
+            bulkRegistering = false;
         }
     }
 
@@ -220,7 +222,7 @@ public class Main extends JavaPlugin {
 
     private <T extends Check & Listener> void registerCheckListener(T checkListener) {
         CheckName checkName = checkListener.getCheckSetting().name;
-        if (registeredCheckNames != null && !registeredCheckNames.add(checkName)) {
+        if (bulkRegistering && !registeredCheckNames.add(checkName)) {
             getLogger().warning("Skipped duplicate check registration: " + checkName.name() +
                     " (" + checkListener.getClass().getSimpleName() + ")");
             return;
