@@ -34,6 +34,22 @@ public class SpeedE extends MovementCheck implements Listener {
     private static final double MICRO_BASE_SPRINT_PER_TICK = 0.32D;
     private static final double SPEED_EFFECT_BONUS_PER_LEVEL = 0.20D;
 
+    private static final long SETBACK_COOLDOWN_MS = 150L;
+    private static final long MICRO_TELEPORT_BASE_WINDOW_MS = 600L;
+    private static final long TELEPORT_EXEMPT_BASE_WINDOW_MS = 1000L;
+
+    private static final String KEY_LAST_MOVEMENT = "lastMovement";
+    private static final String KEY_FLAGS = "flags";
+    private static final String KEY_LAST_TELEPORT = "lastTeleport";
+    private static final String KEY_LAST_SETBACK = "lastSetback";
+    private static final String KEY_ATTRIBUTE = "attribute";
+
+    private static final String KEY_MICRO_WINDOW_START = "microTeleportWindowStart";
+    private static final String KEY_MICRO_SUM = "microTeleportHorizontalSum";
+    private static final String KEY_MICRO_SAMPLES = "microTeleportSamples";
+    private static final String KEY_MICRO_GAPS = "microTeleportPhysicsGaps";
+    private static final String KEY_MICRO_PREV_JUMP = "microTeleportPrevJump";
+
     public SpeedE() {
         super(CheckName.SPEED_E);
     }
@@ -66,31 +82,34 @@ public class SpeedE extends MovementCheck implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void afterMovement(LACAsyncPlayerMoveEvent event) {
         Buffer buffer = getBuffer(event.getPlayer(), true);
-        buffer.put("lastMovement", System.currentTimeMillis());
+        buffer.put(KEY_LAST_MOVEMENT, System.currentTimeMillis());
     }
 
     @EventHandler(priority = EventPriority.LOW)
     public void onTeleport(PlayerTeleportEvent event) {
         if (isExternalNPC(event)) return;
         Buffer buffer = getBuffer(event.getPlayer(), true);
-        buffer.put("flags", 0);
-        buffer.put("lastTeleport", System.currentTimeMillis());
+        buffer.put(KEY_FLAGS, 0);
+        buffer.put(KEY_LAST_TELEPORT, System.currentTimeMillis());
+        resetMicroTeleportWindow(buffer);
     }
 
     @EventHandler(priority = EventPriority.LOW)
     public void onWorldChange(PlayerChangedWorldEvent event) {
         if (isExternalNPC(event)) return;
         Buffer buffer = getBuffer(event.getPlayer(), true);
-        buffer.put("flags", 0);
-        buffer.put("lastTeleport", System.currentTimeMillis());
+        buffer.put(KEY_FLAGS, 0);
+        buffer.put(KEY_LAST_TELEPORT, System.currentTimeMillis());
+        resetMicroTeleportWindow(buffer);
     }
 
     @EventHandler(priority = EventPriority.LOW)
     public void onRespawn(PlayerRespawnEvent event) {
         if (isExternalNPC(event)) return;
         Buffer buffer = getBuffer(event.getPlayer(), true);
-        buffer.put("flags", 0);
-        buffer.put("lastTeleport", System.currentTimeMillis());
+        buffer.put(KEY_FLAGS, 0);
+        buffer.put(KEY_LAST_TELEPORT, System.currentTimeMillis());
+        resetMicroTeleportWindow(buffer);
     }
 
     @EventHandler
@@ -110,10 +129,10 @@ public class SpeedE extends MovementCheck implements Listener {
         Buffer buffer = getBuffer(player, true);
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime - buffer.getLong("lastSetback") < 150)
+        if (currentTime - buffer.getLong(KEY_LAST_SETBACK) < SETBACK_COOLDOWN_MS)
             return;
 
-        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 1000)) {
+        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, TELEPORT_EXEMPT_BASE_WINDOW_MS, false)) {
             resetMicroTeleportWindow(buffer);
             return;
         }
@@ -141,7 +160,7 @@ public class SpeedE extends MovementCheck implements Listener {
 
         applySetback(player, event, buffer);
         Scheduler.runTaskLater(() -> {
-            if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 1000))
+            if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, TELEPORT_EXEMPT_BASE_WINDOW_MS, true))
                 return;
             callViolationEventIfRepeat(player, lacPlayer, event, buffer, 1200);
         }, 1);
@@ -164,10 +183,10 @@ public class SpeedE extends MovementCheck implements Listener {
         Buffer buffer = getBuffer(player, true);
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime - buffer.getLong("lastSetback") < 150)
+        if (currentTime - buffer.getLong(KEY_LAST_SETBACK) < SETBACK_COOLDOWN_MS)
             return;
 
-        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 1000)) {
+        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, TELEPORT_EXEMPT_BASE_WINDOW_MS, false)) {
             resetMicroTeleportWindow(buffer);
             return;
         }
@@ -196,15 +215,17 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime - buffer.getLong("lastSetback") < 150)
+        if (currentTime - buffer.getLong(KEY_LAST_SETBACK) < SETBACK_COOLDOWN_MS)
             return;
 
-        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 600))
+        if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, MICRO_TELEPORT_BASE_WINDOW_MS, false)) {
+            resetMicroTeleportWindow(buffer);
             return;
+        }
 
         if (currentTime - lacPlayer.joinTime < 7500)
             return;
-        if (currentTime - buffer.getLong("lastMovement") > 1000)
+        if (currentTime - buffer.getLong(KEY_LAST_MOVEMENT) > 1000)
             return;
 
         if (!event.isFromWithinBlocksPassable() || !event.isToWithinBlocksPassable())
@@ -234,15 +255,15 @@ public class SpeedE extends MovementCheck implements Listener {
             applySetback(player, event, buffer);
 
             Scheduler.runTaskLater(() -> {
-                if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, 1000))
+                if (isMicroTeleportContextExempt(lacPlayer, cache, buffer, TELEPORT_EXEMPT_BASE_WINDOW_MS, true))
                     return;
                 callViolationEventIfRepeat(player, lacPlayer, event, buffer, 1200);
             }, 1);
             return;
         }
 
-        buffer.put("flags", buffer.getInt("flags") + 1);
-        if (buffer.getInt("flags") <= 3)
+        buffer.put(KEY_FLAGS, buffer.getInt(KEY_FLAGS) + 1);
+        if (buffer.getInt(KEY_FLAGS) <= 3)
             return;
 
         Scheduler.runTask(true, () -> {
@@ -250,21 +271,31 @@ public class SpeedE extends MovementCheck implements Listener {
         });
     }
 
-    private boolean isMicroTeleportContextExempt(LACPlayer lacPlayer, PlayerCache cache, Buffer buffer, long baseTeleportWindow) {
-        long currentTime = System.currentTimeMillis();
+    private boolean isMicroTeleportContextExempt(LACPlayer lacPlayer, PlayerCache cache, Buffer buffer,
+                                                long baseTeleportWindow, boolean ignoreRecentTeleportWindows) {
+        long now = System.currentTimeMillis();
         long dynamicTeleportWindow = Math.max(baseTeleportWindow, getDynamicGraceWindow(lacPlayer, baseTeleportWindow));
-        if (currentTime - cache.lastTeleport < dynamicTeleportWindow)
+
+        if (!ignoreRecentTeleportWindows) {
+            if (now - cache.lastTeleport < dynamicTeleportWindow)
+                return true;
+            if (now - buffer.getLong(KEY_LAST_TELEPORT) < dynamicTeleportWindow)
+                return true;
+        }
+
+        if (now - cache.lastWorldChange < 800 ||
+                now - cache.lastRespawn < 1000 ||
+                now - cache.lastGamemodeChange < 600)
             return true;
-        if (currentTime - buffer.getLong("lastTeleport") < dynamicTeleportWindow)
-            return true;
-        return currentTime - cache.lastWorldChange < 800 ||
-                currentTime - cache.lastRespawn < 1000 ||
-                currentTime - cache.lastGamemodeChange < 600;
+
+        int ping = Math.max(lacPlayer.getPing(true), 0);
+        long sinceMove = now - buffer.getLong(KEY_LAST_MOVEMENT);
+        return ping > 450 || ping > 300 && sinceMove > 450;
     }
 
     private double getConnectionAllowance(LACPlayer lacPlayer, Buffer buffer) {
         int ping = Math.max(lacPlayer.getPing(true), 0);
-        long sinceMove = System.currentTimeMillis() - buffer.getLong("lastMovement");
+        long sinceMove = System.currentTimeMillis() - buffer.getLong(KEY_LAST_MOVEMENT);
 
         double allowance = 1.0;
         if (ping > 220) allowance += 0.10;
@@ -329,22 +360,22 @@ public class SpeedE extends MovementCheck implements Listener {
                                               Buffer buffer, double microCapPerTick, double currentJump) {
         long currentTime = System.currentTimeMillis();
         long window = isHighPingPlayer(lacPlayer) ? 350 : 220;
-        if (currentTime - buffer.getLong("microTeleportWindowStart") > window) {
-            buffer.put("microTeleportWindowStart", currentTime);
-            buffer.put("microTeleportHorizontalSum", 0.0);
-            buffer.put("microTeleportSamples", 0);
-            buffer.put("microTeleportPhysicsGaps", 0);
-            buffer.put("microTeleportPrevJump", 0.0);
+        if (currentTime - buffer.getLong(KEY_MICRO_WINDOW_START) > window) {
+            buffer.put(KEY_MICRO_WINDOW_START, currentTime);
+            buffer.put(KEY_MICRO_SUM, 0.0);
+            buffer.put(KEY_MICRO_SAMPLES, 0);
+            buffer.put(KEY_MICRO_GAPS, 0);
+            buffer.put(KEY_MICRO_PREV_JUMP, 0.0);
         }
 
         if (currentJump <= microCapPerTick * 1.10)
             return false;
 
-        buffer.put("microTeleportHorizontalSum", buffer.getDouble("microTeleportHorizontalSum") + currentJump);
-        buffer.put("microTeleportSamples", buffer.getInt("microTeleportSamples") + 1);
+        buffer.put(KEY_MICRO_SUM, buffer.getDouble(KEY_MICRO_SUM) + currentJump);
+        buffer.put(KEY_MICRO_SAMPLES, buffer.getInt(KEY_MICRO_SAMPLES) + 1);
 
-        double prevJump = buffer.getDouble("microTeleportPrevJump");
-        buffer.put("microTeleportPrevJump", currentJump);
+        double prevJump = buffer.getDouble(KEY_MICRO_PREV_JUMP);
+        buffer.put(KEY_MICRO_PREV_JUMP, currentJump);
 
         double eventPrevStep = safeDistanceHorizontal(
                 cache.history.onEvent.location.get(HistoryElement.FIRST),
@@ -359,32 +390,32 @@ public class SpeedE extends MovementCheck implements Listener {
         boolean physicsGap = currentJump > microCapPerTick * 1.45 ||
                 (currentJump > microCapPerTick * 1.30 && expectedPrev <= microCapPerTick * 1.05);
         if (physicsGap)
-            buffer.put("microTeleportPhysicsGaps", buffer.getInt("microTeleportPhysicsGaps") + 1);
+            buffer.put(KEY_MICRO_GAPS, buffer.getInt(KEY_MICRO_GAPS) + 1);
 
-        int samples = buffer.getInt("microTeleportSamples");
+        int samples = buffer.getInt(KEY_MICRO_SAMPLES);
         int requiredSamples = isHighPingPlayer(lacPlayer) ? 5 : 4;
         if (samples < requiredSamples)
             return false;
 
-        double horizontalSum = buffer.getDouble("microTeleportHorizontalSum");
+        double horizontalSum = buffer.getDouble(KEY_MICRO_SUM);
         int dynamicBuffer = getConnectionBufferRequirement(lacPlayer, 0);
         double maxKinematicSum = microCapPerTick * samples + 0.18 + dynamicBuffer * 0.08;
-        return horizontalSum > maxKinematicSum && buffer.getInt("microTeleportPhysicsGaps") >= 2;
+        return horizontalSum > maxKinematicSum && buffer.getInt(KEY_MICRO_GAPS) >= 2;
     }
 
     private void applySetback(Player player, LACAsyncPlayerMoveEvent event, Buffer buffer) {
         event.setCancelled(true);
         FoliaUtil.teleportPlayer(player, event.getFrom());
-        buffer.put("lastSetback", System.currentTimeMillis());
+        buffer.put(KEY_LAST_SETBACK, System.currentTimeMillis());
         resetMicroTeleportWindow(buffer);
     }
 
     private void resetMicroTeleportWindow(Buffer buffer) {
-        buffer.put("microTeleportWindowStart", 0L);
-        buffer.put("microTeleportHorizontalSum", 0.0);
-        buffer.put("microTeleportSamples", 0);
-        buffer.put("microTeleportPhysicsGaps", 0);
-        buffer.put("microTeleportPrevJump", 0.0);
+        buffer.put(KEY_MICRO_WINDOW_START, 0L);
+        buffer.put(KEY_MICRO_SUM, 0.0);
+        buffer.put(KEY_MICRO_SAMPLES, 0);
+        buffer.put(KEY_MICRO_GAPS, 0);
+        buffer.put(KEY_MICRO_PREV_JUMP, 0.0);
     }
 
     private double safeDistanceHorizontal(Location first, Location second) {
@@ -428,8 +459,8 @@ public class SpeedE extends MovementCheck implements Listener {
 
         if (attributeAmount != 0) {
             maxSpeed = (maxSpeed * 1.05 + 0.11) * Math.max(1, attributeAmount * 13);
-            buffer.put("attribute", System.currentTimeMillis());
-        } else if (System.currentTimeMillis() - buffer.getLong("attribute") < 3000) {
+            buffer.put(KEY_ATTRIBUTE, System.currentTimeMillis());
+        } else if (System.currentTimeMillis() - buffer.getLong(KEY_ATTRIBUTE) < 3000) {
             return -1.0;
         }
 
@@ -536,8 +567,8 @@ public class SpeedE extends MovementCheck implements Listener {
         );
         if (attributeAmount != 0) {
             maxSpeed = (maxSpeed * 1.05 + 0.11) * Math.max(1, attributeAmount * 13);
-            buffer.put("attribute", System.currentTimeMillis());
-        } else if (System.currentTimeMillis() - buffer.getLong("attribute") < 3000) {
+            buffer.put(KEY_ATTRIBUTE, System.currentTimeMillis());
+        } else if (System.currentTimeMillis() - buffer.getLong(KEY_ATTRIBUTE) < 3000) {
             return;
         }
 
