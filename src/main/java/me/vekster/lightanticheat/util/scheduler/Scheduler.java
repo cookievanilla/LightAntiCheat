@@ -41,6 +41,10 @@ public class Scheduler {
         SCHEDULER.runTaskLater(entity, task, delayInTicks);
     }
 
+    public static void runTaskLater(Player player, Runnable task) {
+        SCHEDULER.runTaskLater(player, task, 1);
+    }
+
     public static void runTaskLaterAsynchronously(Runnable task, long delayInTicks) {
         SCHEDULER.runTaskLaterAsynchronously(task, delayInTicks);
     }

@@ -148,9 +148,9 @@ public class CriticalsB extends CombatCheck implements Listener {
                     Scheduler.runTask(true, () -> {
                         callViolationEvent(player, lacPlayer, null);
                     });
-                }, 1);
-            }, 1);
-        }, 1);
+                });
+            });
+        });
     }
 
     @EventHandler(priority = EventPriority.LOW)

@@ -81,7 +81,7 @@ public class ElytraC extends MovementCheck implements Listener {
         }
 
         int ping = lacPlayer.getPing();
-        if (cache.glidingTicks <= 20) {
+        if (cache.glidingTicks <= 14) {
             buffer.put("glidingEvents", 0);
             buffer.put("elytraFlags", 0);
             return;
