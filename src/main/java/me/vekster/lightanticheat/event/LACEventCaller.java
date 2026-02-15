@@ -27,6 +27,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.PluginManager;
 import org.jetbrains.annotations.NotNull;
@@ -65,6 +66,9 @@ public class LACEventCaller extends LightInjector implements Listener {
     public static void callEntityDamageEvent(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player))
             return;
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK &&
+                event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)
+            return;
         Player player = (Player) event.getDamager();
         if (CheckUtil.isExternalNPC(player))
             return;
@@ -76,7 +80,8 @@ public class LACEventCaller extends LightInjector implements Listener {
                 return;
             PLUGIN_MANAGER.callEvent(new LACPlayerAttackEvent(event, player, lacPlayer, event.getEntity()));
             Scheduler.runTaskAsynchronously(true, () -> {
-                PLUGIN_MANAGER.callEvent(new LACAsyncPlayerAttackEvent(player, lacPlayer, event.getEntity().getEntityId()));
+                PLUGIN_MANAGER.callEvent(new LACAsyncPlayerAttackEvent(player, lacPlayer,
+                        event.getEntity().getEntityId(), event.getCause()));
             });
         });
     }
