@@ -13,7 +13,6 @@ import me.vekster.lightanticheat.util.hook.plugin.FloodgateHook;
 import me.vekster.lightanticheat.util.scheduler.Scheduler;
 import me.vekster.lightanticheat.version.VerUtil;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -288,6 +287,9 @@ public class SpeedE extends MovementCheck implements Listener {
                 now - cache.lastGamemodeChange < 600)
             return true;
 
+        if (ignoreRecentTeleportWindows)
+            return false;
+
         int ping = Math.max(lacPlayer.getPing(true), 0);
         long sinceMove = now - buffer.getLong(KEY_LAST_MOVEMENT);
         return ping > 450 || ping > 300 && sinceMove > 450;
@@ -340,21 +342,11 @@ public class SpeedE extends MovementCheck implements Listener {
     }
 
     private boolean isOnIceSurface(LACAsyncPlayerMoveEvent event) {
-        for (Block block : event.getToDownBlocks()) {
-            if (block != null && isIce(block.getType()))
-                return true;
-        }
+        if (event.isToOnIce() || event.isFromOnIce())
+            return true;
         return false;
     }
 
-    private boolean isIce(Material material) {
-        if (material == null)
-            return false;
-        return material == VerUtil.material.get("ICE") ||
-                material == VerUtil.material.get("PACKED_ICE") ||
-                material == VerUtil.material.get("BLUE_ICE") ||
-                material == VerUtil.material.get("FROSTED_ICE");
-    }
 
     private boolean isMicroTeleportSuspicious(LACAsyncPlayerMoveEvent event, LACPlayer lacPlayer, PlayerCache cache,
                                               Buffer buffer, double microCapPerTick, double currentJump) {
