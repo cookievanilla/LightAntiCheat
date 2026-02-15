@@ -133,8 +133,7 @@ public class BlockPlaceA extends InteractionCheck implements Listener {
 
     private boolean executeRaytrace(Player player, String blockWorld, int blockX, int blockZ, Material blockType, Buffer buffer) {
         try {
-            return Scheduler.entityThread(player, true, false,
-                    () -> flagRaytrace(player, blockWorld, blockX, blockZ, blockType));
+            return flagRaytrace(player, blockWorld, blockX, blockZ, blockType);
         } catch (IllegalStateException exception) {
             resetBuffer(buffer);
             return false;
