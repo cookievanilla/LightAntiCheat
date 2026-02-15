@@ -38,6 +38,9 @@ public class ConnectionStabilityListener implements Listener {
             for (Player player : Bukkit.getOnlinePlayers())
                 onlinePlayers.add(player.getUniqueId());
 
+            for (UUID onlinePlayer : onlinePlayers)
+                PLAYERS.putIfAbsent(onlinePlayer, Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
+
             PLAYERS.entrySet().removeIf(entry -> {
                 if (!onlinePlayers.contains(entry.getKey()))
                     return true;
@@ -52,9 +55,13 @@ public class ConnectionStabilityListener implements Listener {
     }
 
     public static void loadConnectionCalculatorOnReload() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            PLAYERS.put(player.getUniqueId(), Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
-        }
+        Set<UUID> onlinePlayers = new HashSet<>();
+        for (Player player : Bukkit.getOnlinePlayers())
+            onlinePlayers.add(player.getUniqueId());
+
+        PLAYERS.keySet().removeIf(uuid -> !onlinePlayers.contains(uuid));
+        for (UUID onlinePlayer : onlinePlayers)
+            PLAYERS.put(onlinePlayer, Collections.synchronizedList(new ArrayList<>(Arrays.asList(0, 0, 0, 0))));
     }
 
     public static ConnectionStability getConnectionStability(Player player) {
