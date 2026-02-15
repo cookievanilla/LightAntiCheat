@@ -47,6 +47,7 @@ public class SpeedA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -5 || cache.riptidingTicks >= -6)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 1500 && time - cache.lastKnockbackNotVanilla > 5000 &&
                 time - cache.lastWasFished > 3000 && time - cache.lastTeleport > 600 &&
@@ -59,7 +60,8 @@ public class SpeedA extends MovementCheck implements Listener {
                 time - cache.lastStrongKbVelocity > 2500 && time - cache.lastStrongAirKbVelocity > 5000 &&
                 time - cache.lastFlight > 1000 &&
                 time - cache.lastGliding > 750 && time - cache.lastRiptiding > 1500 &&
-                !hasRecent121MobilityBoost(cache, time, false);
+                !hasRecent121MobilityBoost(cache, time, false) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler
@@ -253,6 +255,7 @@ public class SpeedA extends MovementCheck implements Listener {
             return;
         }
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         boolean conditionAllowed = time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 1500 && time - cache.lastKnockbackNotVanilla > 5000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 700 &&
@@ -265,7 +268,8 @@ public class SpeedA extends MovementCheck implements Listener {
                 time - cache.lastKbVelocity > 1000 && time - cache.lastAirKbVelocity > 2000 &&
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 15 * 1000 &&
                 time - cache.lastFlight > 1000 &&
-                time - cache.lastGliding > 2000 && time - cache.lastRiptiding > 3500;
+                time - cache.lastGliding > 2000 && time - cache.lastRiptiding > 3500 &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
         if (!conditionAllowed) {
             buffer.put("airSpeedTicks", 0);
             return;

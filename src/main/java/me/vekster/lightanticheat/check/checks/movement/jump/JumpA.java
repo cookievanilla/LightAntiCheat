@@ -40,6 +40,7 @@ public class JumpA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -6 || cache.riptidingTicks >= -10)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         return time - cache.lastInsideVehicle > 300 && time - cache.lastInWater > 300 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 5000 && time - cache.lastTeleport > 700 &&
@@ -51,7 +52,8 @@ public class JumpA extends MovementCheck implements Listener {
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 10 * 1000 &&
                 time - cache.lastFlight > 1200 &&
-                !hasRecent121MobilityBoost(cache, time, true);
+                !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler

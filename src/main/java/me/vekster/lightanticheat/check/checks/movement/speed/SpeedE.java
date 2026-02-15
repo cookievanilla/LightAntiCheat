@@ -43,6 +43,7 @@ public class SpeedE extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -5)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 600 &&
@@ -54,7 +55,8 @@ public class SpeedE extends MovementCheck implements Listener {
                 time - cache.lastKbVelocity > 250 && time - cache.lastAirKbVelocity > 500 &&
                 time - cache.lastStrongKbVelocity > 1250 && time - cache.lastStrongAirKbVelocity > 2500 &&
                 time - cache.lastFlight > 750 &&
-                !hasRecent121MobilityBoost(cache, time, false);
+                !hasRecent121MobilityBoost(cache, time, false) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -260,6 +262,7 @@ public class SpeedE extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -5)
             return;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         boolean isConditionAllowed = time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 2500 &&
@@ -271,7 +274,8 @@ public class SpeedE extends MovementCheck implements Listener {
                 time - cache.lastKbVelocity > 500 && time - cache.lastAirKbVelocity > 1000 &&
                 time - cache.lastStrongKbVelocity > 2500 && time - cache.lastStrongAirKbVelocity > 5000 &&
                 time - cache.lastFlight > 750 &&
-                !hasRecent121MobilityBoost(cache, time, false);
+                !hasRecent121MobilityBoost(cache, time, false) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
         if (!isConditionAllowed)
             return;
 

@@ -44,6 +44,7 @@ public class NoFallA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -5)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 900 &&
@@ -53,7 +54,8 @@ public class NoFallA extends MovementCheck implements Listener {
                 time - cache.lastHoneyBlockVertical > 2500 && time - cache.lastHoneyBlockHorizontal > 2500 &&
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastFlight > 750 &&
-                !hasRecent121MobilityBoost(cache, time, true);
+                !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     private static final Map<Integer, Float> EVENTS_JUMP_0 = new ConcurrentHashMap<>();
