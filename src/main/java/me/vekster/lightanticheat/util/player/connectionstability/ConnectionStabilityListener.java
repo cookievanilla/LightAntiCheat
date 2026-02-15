@@ -33,21 +33,22 @@ public class ConnectionStabilityListener implements Listener {
     }
 
     public static void loadConnectionCalculator() {
-        Scheduler.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                PLAYERS.entrySet().removeIf(entry -> {
-                    if (Bukkit.getPlayer(entry.getKey()) == null)
-                        return true;
-                    List<Integer> list = entry.getValue();
-                    synchronized (list) {
-                        list.add(0);
-                        list.remove(0);
-                    }
-                    return false;
-                });
-            }
-        }, 2000, 2000);
+        Scheduler.runTaskTimer(() -> {
+            Set<UUID> onlinePlayers = new HashSet<>();
+            for (Player player : Bukkit.getOnlinePlayers())
+                onlinePlayers.add(player.getUniqueId());
+
+            PLAYERS.entrySet().removeIf(entry -> {
+                if (!onlinePlayers.contains(entry.getKey()))
+                    return true;
+                List<Integer> list = entry.getValue();
+                synchronized (list) {
+                    list.add(0);
+                    list.remove(0);
+                }
+                return false;
+            });
+        }, 40, 40);
     }
 
     public static void loadConnectionCalculatorOnReload() {
@@ -64,14 +65,15 @@ public class ConnectionStabilityListener implements Listener {
         List<Integer> list = PLAYERS.get(uuid);
         if (list == null)
             return ConnectionStability.HIGH;
-        List<Integer> snapshot;
+
+        int maxVal = 0;
         synchronized (list) {
-            snapshot = new ArrayList<>(list);
+            for (int value : list)
+                if (value > maxVal)
+                    maxVal = value;
         }
-        int max = (int) Math.floor(snapshot.stream()
-                .mapToInt(v -> v)
-                .max().orElse(0)
-                / 2.0);
+
+        int max = (int) Math.floor(maxVal / 2.0);
         if (max <= 25)
             return ConnectionStability.HIGH;
         else if (max <= 50)
