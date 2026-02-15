@@ -149,6 +149,11 @@ public class ElytraC extends MovementCheck implements Listener {
         if (Math.min(horizontalSpeed, averageHorizontalSpeed) < Math.max(maxTickSpeed, maxEventSpeed) * (1.6 + pingAllowance) + 0.35 + pingAllowance)
             return;
 
+        long now = System.currentTimeMillis();
+        if (now - buffer.getLong("lastElytraSync") < 200L)
+            return;
+        buffer.put("lastElytraSync", now);
+
         Scheduler.runTask(true, () -> {
             buffer.put("elytraFlags", buffer.getInt("elytraFlags") + 1);
             int requiredElytraFlags = getConnectionBufferRequirement(lacPlayer, 1);
