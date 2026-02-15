@@ -42,6 +42,7 @@ public class ElytraC extends MovementCheck implements Listener {
         if (cache.flyingTicks >= -5 || cache.climbingTicks >= -2 || cache.glidingTicks <= 3)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 600);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 500 &&
@@ -55,7 +56,8 @@ public class ElytraC extends MovementCheck implements Listener {
                 time - cache.lastKbVelocity > 500 && time - cache.lastAirKbVelocity > 1000 &&
                 time - cache.lastStrongKbVelocity > 2500 && time - cache.lastStrongAirKbVelocity > 5000 &&
                 time - cache.lastFlight > 750 &&
-                !hasRecent121MobilityBoost(cache, time, true);
+                !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler
@@ -67,20 +69,24 @@ public class ElytraC extends MovementCheck implements Listener {
 
         if (!isCheckAllowed(player, lacPlayer, true)) {
             buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
             return;
         }
 
         if (!isConditionAllowed(player, lacPlayer, event)) {
             buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
             return;
         }
 
         if (!event.isToWithinBlocksPassable() || !event.isFromWithinBlocksPassable()) {
             buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
             return;
         }
         if (!event.isToDownBlocksPassable() || !event.isFromDownBlocksPassable()) {
             buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
             return;
         }
 
@@ -91,6 +97,7 @@ public class ElytraC extends MovementCheck implements Listener {
         long currentTime = System.currentTimeMillis();
         if (currentTime - buffer.getLong("effectTime") < 1000) {
             buffer.put("glidingEvents", 0);
+            buffer.put("elytraFlags", 0);
             return;
         }
 
@@ -100,6 +107,7 @@ public class ElytraC extends MovementCheck implements Listener {
                 Block downBlock = block.getRelative(BlockFace.DOWN);
                 if (!isActuallyPassable(downBlock)) {
                     buffer.put("glidingEvents", 0);
+                    buffer.put("elytraFlags", 0);
                     return;
                 }
             }
@@ -113,6 +121,7 @@ public class ElytraC extends MovementCheck implements Listener {
         for (Block block : interactiveBlocks)
             if (!isActuallyPassable(block)) {
                 buffer.put("glidingEvents", 0);
+                buffer.put("elytraFlags", 0);
                 return;
             }
 
@@ -132,6 +141,10 @@ public class ElytraC extends MovementCheck implements Listener {
             return;
 
         Scheduler.runTask(true, () -> {
+            buffer.put("elytraFlags", buffer.getInt("elytraFlags") + 1);
+            int requiredElytraFlags = getConnectionBufferRequirement(lacPlayer, 1);
+            if (buffer.getInt("elytraFlags") <= requiredElytraFlags)
+                return;
             callViolationEventIfRepeat(player, lacPlayer, event, buffer, Main.getBufferDurationMils() - 1000L);
         });
     }

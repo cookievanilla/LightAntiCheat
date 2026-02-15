@@ -40,6 +40,7 @@ public class FastClimbA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -3)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 350);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 500 && time - cache.lastKnockbackNotVanilla > 2000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 500 &&
@@ -49,7 +50,8 @@ public class FastClimbA extends MovementCheck implements Listener {
                 time - cache.lastHoneyBlockVertical > 700 && time - cache.lastHoneyBlockHorizontal > 700 &&
                 time - cache.lastWasHit > 250 && time - cache.lastWasDamaged > 100 &&
                 time - cache.lastFlight > 750 &&
-                !hasRecent121MobilityBoost(cache, time, false);
+                !hasRecent121MobilityBoost(cache, time, false) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler
@@ -61,16 +63,19 @@ public class FastClimbA extends MovementCheck implements Listener {
 
         if (!isCheckAllowed(player, lacPlayer, true)) {
             buffer.put("climbingEvents", 0);
+            buffer.put("climbFlags", 0);
             return;
         }
 
         if (!isConditionAllowed(player, lacPlayer, event)) {
             buffer.put("climbingEvents", 0);
+            buffer.put("climbFlags", 0);
             return;
         }
 
         if (FloodgateHook.isBedrockPlayer(player, true)) {
             buffer.put("climbingEvents", 0);
+            buffer.put("climbFlags", 0);
             return;
         }
 
@@ -87,6 +92,7 @@ public class FastClimbA extends MovementCheck implements Listener {
         withinMaterials.addAll(event.getFromWithinMaterials());
         if (withinMaterials.contains(VerUtil.material.get("SCAFFOLDING"))) {
             buffer.put("climbingEvents", 0);
+            buffer.put("climbFlags", 0);
             return;
         }
 
@@ -152,6 +158,10 @@ public class FastClimbA extends MovementCheck implements Listener {
         }
 
         Scheduler.runTask(true, () -> {
+            buffer.put("climbFlags", buffer.getInt("climbFlags") + 1);
+            int requiredClimbFlags = getConnectionBufferRequirement(lacPlayer, 1);
+            if (buffer.getInt("climbFlags") <= requiredClimbFlags)
+                return;
             callViolationEvent(player, lacPlayer, event);
         });
     }

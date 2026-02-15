@@ -71,6 +71,7 @@ public class PlayerCache {
     public long lastSwingTime;
     public long lastInsideVehicle;
     public long lastInWater;
+    public long lastClimbingTransition;
 
     public int sneakingTicks;
     public int sprintingTicks;

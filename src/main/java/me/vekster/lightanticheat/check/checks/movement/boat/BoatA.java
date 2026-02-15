@@ -45,6 +45,7 @@ public class BoatA extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -5)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, 450);
         return time - cache.lastKnockback > 500 && time - cache.lastKnockbackNotVanilla > 2000 &&
                 time - cache.lastWasFished > 3000 && time - cache.lastTeleport > 500 &&
                 time - cache.lastRespawn > 500 &&
@@ -55,7 +56,8 @@ public class BoatA extends MovementCheck implements Listener {
                 time - cache.lastKbVelocity > 250 && time - cache.lastAirKbVelocity > 500 &&
                 time - cache.lastStrongKbVelocity > 1250 && time - cache.lastStrongAirKbVelocity > 2500 &&
                 time - cache.lastFlight > 750 &&
-                !hasRecent121MobilityBoost(cache, time, false);
+                !hasRecent121MobilityBoost(cache, time, false) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler

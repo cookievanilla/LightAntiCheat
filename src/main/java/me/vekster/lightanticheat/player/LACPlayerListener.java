@@ -778,7 +778,12 @@ public class LACPlayerListener implements Listener {
                             cache.sneakingTicks = increase(player.isSneaking(), cache.sneakingTicks);
                             cache.sprintingTicks = increase(player.isSprinting(), cache.sprintingTicks);
                             cache.swimmingTicks = increase(lacPlayer.isSwimming(), cache.swimmingTicks);
+                            int previousClimbingTicks = cache.climbingTicks;
                             cache.climbingTicks = increase(lacPlayer.isClimbing(), cache.climbingTicks);
+                            if (previousClimbingTicks >= 0 && cache.climbingTicks < 0 ||
+                                    previousClimbingTicks < 0 && cache.climbingTicks >= 0) {
+                                cache.lastClimbingTransition = System.currentTimeMillis();
+                            }
                             cache.glidingTicks = increase(lacPlayer.isGliding(), cache.glidingTicks);
                             cache.riptidingTicks = increase(lacPlayer.isRiptiding(), cache.riptidingTicks);
                             cache.flyingTicks = increase(player.isFlying(), cache.flyingTicks);
