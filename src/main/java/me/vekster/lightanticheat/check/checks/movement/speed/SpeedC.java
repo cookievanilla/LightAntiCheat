@@ -163,8 +163,10 @@ public class SpeedC extends MovementCheck implements Listener {
 
         buffer.put("flags", buffer.getInt("flags") + 1);
         int requiredFlags = getConnectionBufferRequirement(lacPlayer, player, 3);
-        if (buffer.getInt("flags") <= requiredFlags && currentTime - lacPlayer.cache.lastEntityNearby > 1000 ||
-                buffer.getInt("flags") <= requiredFlags + 1)
+        long timeSinceEntityNearby = currentTime - lacPlayer.cache.lastEntityNearby;
+        if (timeSinceEntityNearby > 1000)
+            requiredFlags += 1;
+        if (buffer.getInt("flags") <= requiredFlags)
             return;
 
         Set<Player> players = getPlayersForEnchantsSquared(lacPlayer, player);

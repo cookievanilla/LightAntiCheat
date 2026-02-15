@@ -49,13 +49,20 @@ public abstract class MovementCheck extends Check {
     }
 
 
+    private ConnectionStability getConnectionStabilitySafe(Player player) {
+        try {
+            return ConnectionStabilityListener.getConnectionStability(player);
+        } catch (RuntimeException ignored) {
+            return ConnectionStability.HIGH;
+        }
+    }
 
 
     protected long getDynamicGraceWindow(LACPlayer lacPlayer, Player player, long baseWindow) {
         int ping = Math.max(lacPlayer.getPing(true), 0);
         long pingGrace = Math.max(0, ping - 120L);
 
-        ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
+        ConnectionStability stability = getConnectionStabilitySafe(player);
         long jitterGrace = 0;
         if (stability == ConnectionStability.MEDIUM)
             jitterGrace = 150;
@@ -69,7 +76,7 @@ public abstract class MovementCheck extends Check {
         int ping = Math.max(lacPlayer.getPing(true), 0);
         int pingBuffer = ping > 350 ? 3 : ping > 220 ? 2 : ping > 140 ? 1 : 0;
 
-        ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
+        ConnectionStability stability = getConnectionStabilitySafe(player);
         int jitterBuffer = stability == ConnectionStability.LOW ? 2 : stability == ConnectionStability.MEDIUM ? 1 : 0;
         return baseBuffer + pingBuffer + jitterBuffer;
     }
