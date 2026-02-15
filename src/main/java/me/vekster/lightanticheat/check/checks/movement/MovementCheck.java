@@ -8,6 +8,8 @@ import me.vekster.lightanticheat.event.playermove.LACPlayerMoveEvent;
 import me.vekster.lightanticheat.player.LACPlayer;
 import me.vekster.lightanticheat.player.cache.PlayerCache;
 import me.vekster.lightanticheat.util.cooldown.CooldownUtil;
+import me.vekster.lightanticheat.util.player.connectionstability.ConnectionStability;
+import me.vekster.lightanticheat.util.player.connectionstability.ConnectionStabilityListener;
 import me.vekster.lightanticheat.util.hook.plugin.simplehook.EnchantsSquaredHook;
 import me.vekster.lightanticheat.version.VerPlayer;
 import me.vekster.lightanticheat.version.VerUtil;
@@ -46,6 +48,40 @@ public abstract class MovementCheck extends Check {
                 event.isPlayerFlying(), event.isPlayerInsideVehicle(), event.isPlayerGliding(), event.isPlayerRiptiding());
     }
 
+
+
+
+    protected long getDynamicGraceWindow(LACPlayer lacPlayer, Player player, long baseWindow) {
+        int ping = Math.max(lacPlayer.getPing(true), 0);
+        long pingGrace = Math.max(0, ping - 120L);
+
+        ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
+        long jitterGrace = 0;
+        if (stability == ConnectionStability.MEDIUM)
+            jitterGrace = 150;
+        else if (stability == ConnectionStability.LOW)
+            jitterGrace = 300;
+
+        return baseWindow + Math.min(1200, pingGrace + jitterGrace);
+    }
+
+    protected int getConnectionBufferRequirement(LACPlayer lacPlayer, Player player, int baseBuffer) {
+        int ping = Math.max(lacPlayer.getPing(true), 0);
+        int pingBuffer = ping > 350 ? 3 : ping > 220 ? 2 : ping > 140 ? 1 : 0;
+
+        ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
+        int jitterBuffer = stability == ConnectionStability.LOW ? 2 : stability == ConnectionStability.MEDIUM ? 1 : 0;
+        return baseBuffer + pingBuffer + jitterBuffer;
+    }
+
+    protected boolean hasInstabilityCooldown(PlayerCache cache, long time, long cooldownWindow) {
+        return time - cache.lastWindCharge <= cooldownWindow ||
+                time - cache.lastWindChargeReceive <= cooldownWindow ||
+                time - cache.lastWindBurst <= cooldownWindow ||
+                time - cache.lastWindBurstNotVanilla <= cooldownWindow + 400 ||
+                time - cache.lastClimbingTransition <= cooldownWindow ||
+                time - cache.lastTeleport <= cooldownWindow;
+    }
 
     public boolean isPingGlidingPossible(Player player, PlayerCache cache) {
         long currentTime = System.currentTimeMillis();

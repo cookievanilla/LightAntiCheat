@@ -45,6 +45,7 @@ public class FlightC extends MovementCheck implements Listener {
                 cache.glidingTicks >= -3 || cache.riptidingTicks >= -5)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         return time - cache.lastInsideVehicle > 150 && time - cache.lastInWater > 150 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 4000 && time - cache.lastTeleport > 700 &&
@@ -58,7 +59,8 @@ public class FlightC extends MovementCheck implements Listener {
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 15 * 1000 &&
                 time - cache.lastFlight > 750 &&
                 time - cache.lastGliding > 2000 && time - cache.lastRiptiding > 3500 &&
-                !hasRecent121MobilityBoost(cache, time, true);
+                !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler
@@ -71,11 +73,13 @@ public class FlightC extends MovementCheck implements Listener {
         if (!isCheckAllowed(player, lacPlayer, true)) {
             buffer.put("flightTicks", 0);
             buffer.put("airJump", 0);
+            buffer.put("flightFlags", 0);
             return;
         }
 
         if (!isConditionAllowed(player, lacPlayer, event)) {
             buffer.put("flightTicks", 0);
+            buffer.put("flightFlags", 0);
             if (System.currentTimeMillis() - cache.lastTeleport > 700)
                 buffer.put("airJump", 0);
             return;
@@ -84,6 +88,7 @@ public class FlightC extends MovementCheck implements Listener {
         if (!event.isToWithinBlocksPassable() || !event.isFromWithinBlocksPassable()) {
             buffer.put("flightTicks", 0);
             buffer.put("airJump", 0);
+            buffer.put("flightFlags", 0);
             return;
         }
 
@@ -92,12 +97,14 @@ public class FlightC extends MovementCheck implements Listener {
         if (currentTime - cache.lastEntityNearby <= 1000) {
             buffer.put("flightTicks", 0);
             buffer.put("airJump", 0);
+            buffer.put("flightFlags", 0);
             return;
         }
 
         if (currentTime - buffer.getLong("effectTime") <= 2000) {
             buffer.put("flightTicks", 0);
             buffer.put("airJump", 0);
+            buffer.put("flightFlags", 0);
             return;
         }
 
@@ -128,11 +135,13 @@ public class FlightC extends MovementCheck implements Listener {
         if (currentTime - buffer.getLong("lastScaffoldPlace") <= 400L) {
             buffer.put("flightTicks", 0);
             buffer.put("airJump", 0);
+            buffer.put("flightFlags", 0);
             return;
         }
 
         buffer.put("flightTicks", buffer.getInt("flightTicks") + 1);
-        if (buffer.getInt("flightTicks") <= 2)
+        int requiredFlightTicks = getConnectionBufferRequirement(lacPlayer, player, 2);
+        if (buffer.getInt("flightTicks") <= requiredFlightTicks)
             return;
         boolean isBedrockPlayer = FloodgateHook.isBedrockPlayer(player, true);
 
@@ -190,6 +199,12 @@ public class FlightC extends MovementCheck implements Listener {
 
             if (AccuracyUtil.isViolationCancel(getCheckSetting(), buffer))
                 return;
+
+            buffer.put("flightFlags", buffer.getInt("flightFlags") + 1);
+            int requiredFlightFlags = getConnectionBufferRequirement(lacPlayer, player, 1);
+            if (buffer.getInt("flightFlags") <= requiredFlightFlags)
+                return;
+
             if (!isBedrockPlayer) {
                 if (System.currentTimeMillis() - buffer.getLong("lastGlidingLagPossibleTime") < 5 * 1000)
                     callViolationEventIfRepeat(player, lacPlayer, event, buffer, 300);

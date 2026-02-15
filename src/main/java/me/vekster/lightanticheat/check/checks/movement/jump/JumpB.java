@@ -43,6 +43,7 @@ public class JumpB extends MovementCheck implements Listener {
                 cache.glidingTicks >= -6 || cache.riptidingTicks >= -10)
             return false;
         long time = System.currentTimeMillis();
+        long instabilityGrace = getDynamicGraceWindow(lacPlayer, player, 450);
         return time - cache.lastInsideVehicle > 300 && time - cache.lastInWater > 300 &&
                 time - cache.lastKnockback > 750 && time - cache.lastKnockbackNotVanilla > 3000 &&
                 time - cache.lastWasFished > 5000 && time - cache.lastTeleport > 700 &&
@@ -54,7 +55,8 @@ public class JumpB extends MovementCheck implements Listener {
                 time - cache.lastWasHit > 350 && time - cache.lastWasDamaged > 150 &&
                 time - cache.lastStrongKbVelocity > 5000 && time - cache.lastStrongAirKbVelocity > 10 * 1000 &&
                 time - cache.lastFlight > 1200 &&
-                !hasRecent121MobilityBoost(cache, time, true);
+                !hasRecent121MobilityBoost(cache, time, true) &&
+                !hasInstabilityCooldown(cache, time, instabilityGrace);
     }
 
     @EventHandler
@@ -68,15 +70,18 @@ public class JumpB extends MovementCheck implements Listener {
 
         if (!isCheckAllowed(player, lacPlayer, true)) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
         if (!isConditionAllowed(player, lacPlayer, event)) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
         if (System.currentTimeMillis() - buffer.getLong("lastVelocity") < 1750) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
@@ -86,11 +91,13 @@ public class JumpB extends MovementCheck implements Listener {
                 history.onEvent.onGround.get(HistoryElement.FROM).towardsTrue ||
                 history.onPacket.onGround.get(HistoryElement.FROM).towardsTrue) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
         if (!event.isToWithinBlocksPassable() || !event.isFromWithinBlocksPassable()) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
@@ -98,12 +105,14 @@ public class JumpB extends MovementCheck implements Listener {
         if (getEffectAmplifier(cache, VerUtil.potions.get("LEVITATION")) > 0 ||
                 jumpEffectAmplifier > 5) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
         if (buffer.isExists("lastJumpEffect") && buffer.getInt("lastJumpEffect") != jumpEffectAmplifier) {
             buffer.put("lastJumpEffect", jumpEffectAmplifier);
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
         buffer.put("lastJumpEffect", jumpEffectAmplifier);
@@ -119,6 +128,7 @@ public class JumpB extends MovementCheck implements Listener {
         });
         if (interactiveMaterials.contains(Material.SLIME_BLOCK) || interactiveMaterials.contains(VerUtil.material.get("HONEY_BLOCK"))) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
@@ -132,6 +142,7 @@ public class JumpB extends MovementCheck implements Listener {
                 .forEach(block -> downMaterials.add(block.getType()));
         if (downMaterials.contains(Material.SLIME_BLOCK) || downMaterials.contains(VerUtil.material.get("HONEY_BLOCK"))) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
@@ -147,6 +158,7 @@ public class JumpB extends MovementCheck implements Listener {
         if (previousEventSpeed <= 0 || eventSpeed <= 0 || previousEventSpeed < eventSpeed ||
                 previousPacketSpeed <= 0 || currentPacketSpeed <= 0 || previousPacketSpeed < currentPacketSpeed) {
             buffer.put("jumpHeight", 0.0);
+            buffer.put("jumpFlags", 0);
             return;
         }
 
@@ -192,6 +204,10 @@ public class JumpB extends MovementCheck implements Listener {
             if (isEnchantsSquaredImpact(players) && jumpHeight * 0.7 - 2.2 <= finalMaxJumpHeight)
                 return;
 
+            buffer.put("jumpFlags", buffer.getInt("jumpFlags") + 1);
+            int requiredJumpFlags = getConnectionBufferRequirement(lacPlayer, player, 1);
+            if (buffer.getInt("jumpFlags") <= requiredJumpFlags)
+                return;
             callViolationEventIfRepeat(player, lacPlayer, event, buffer, Main.getBufferDurationMils() - 1000L);
         });
     }
