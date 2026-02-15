@@ -726,14 +726,25 @@ public class LACPlayerListener implements Listener {
         Player player = (Player) event.getEntity();
         if (CheckUtil.isExternalNPC(player)) return;
         LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
+        long currentTime = System.currentTimeMillis();
         if (event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) {
-            lacPlayer.cache.lastBlockExplosion = System.currentTimeMillis();
+            lacPlayer.cache.lastBlockExplosion = currentTime;
             lacPlayer.cache.vectorOnBlockExplosion = null;
+            lacPlayer.cache.lastWasDamaged = currentTime;
+            lacPlayer.cache.lastKbVelocity = currentTime;
+            lacPlayer.cache.lastAirKbVelocity = currentTime;
+            lacPlayer.cache.vectorOnKbVelocity = null;
+            lacPlayer.cache.vectorOnAirKbVelocity = null;
 
         }
         if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-            lacPlayer.cache.lastEntityExplosion = System.currentTimeMillis();
+            lacPlayer.cache.lastEntityExplosion = currentTime;
             lacPlayer.cache.vectorOnEntityExplosion = null;
+            lacPlayer.cache.lastWasDamaged = currentTime;
+            lacPlayer.cache.lastKbVelocity = currentTime;
+            lacPlayer.cache.lastAirKbVelocity = currentTime;
+            lacPlayer.cache.vectorOnKbVelocity = null;
+            lacPlayer.cache.vectorOnAirKbVelocity = null;
         }
     }
 

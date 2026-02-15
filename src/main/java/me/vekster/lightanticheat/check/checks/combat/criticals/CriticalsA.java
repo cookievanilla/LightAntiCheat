@@ -95,6 +95,8 @@ public class CriticalsA extends CombatCheck implements Listener {
 
     @EventHandler
     public void onAsyncHit(LACAsyncPlayerAttackEvent event) {
+        if (event.hasDamageCause() && !event.isEntityAttackCause())
+            return;
         if (event.getEntityId() == 0)
             return;
         if (ValhallaMMOHook.isPluginInstalled())
