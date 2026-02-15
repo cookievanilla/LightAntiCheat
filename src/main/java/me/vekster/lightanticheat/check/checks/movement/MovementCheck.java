@@ -49,9 +49,9 @@ public abstract class MovementCheck extends Check {
     }
 
 
-    private ConnectionStability getConnectionStabilitySafe(Player player) {
+    private ConnectionStability getConnectionStabilitySafe(LACPlayer lacPlayer) {
         try {
-            ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(player);
+            ConnectionStability stability = ConnectionStabilityListener.getConnectionStability(lacPlayer.uuid);
             return stability != null ? stability : ConnectionStability.HIGH;
         } catch (RuntimeException | LinkageError ignored) {
             return ConnectionStability.HIGH;
@@ -63,7 +63,7 @@ public abstract class MovementCheck extends Check {
         int ping = Math.max(lacPlayer.getPing(true), 0);
         long pingGrace = Math.max(0, ping - 120L);
 
-        ConnectionStability stability = getConnectionStabilitySafe(player);
+        ConnectionStability stability = getConnectionStabilitySafe(lacPlayer);
         long jitterGrace = 0;
         if (stability == ConnectionStability.MEDIUM)
             jitterGrace = 150;
@@ -77,14 +77,16 @@ public abstract class MovementCheck extends Check {
         int ping = Math.max(lacPlayer.getPing(true), 0);
         int pingBuffer = ping > 350 ? 3 : ping > 220 ? 2 : ping > 140 ? 1 : 0;
 
-        ConnectionStability stability = getConnectionStabilitySafe(player);
+        ConnectionStability stability = getConnectionStabilitySafe(lacPlayer);
         int jitterBuffer = stability == ConnectionStability.LOW ? 2 : stability == ConnectionStability.MEDIUM ? 1 : 0;
-        return baseBuffer + pingBuffer + jitterBuffer;
+        int dynamicIncrease = Math.min(5, pingBuffer + jitterBuffer);
+        return baseBuffer + dynamicIncrease;
     }
 
     protected boolean hasInstabilityCooldown(PlayerCache cache, long time, long cooldownWindow) {
         long climbingTransitionWindow = Math.min(cooldownWindow, 250);
         long stateChangeWindow = Math.min(cooldownWindow, 400);
+        long gameModeChangeWindow = Math.min(cooldownWindow, 250);
         return time - cache.lastWindCharge <= cooldownWindow ||
                 time - cache.lastWindChargeReceive <= cooldownWindow ||
                 time - cache.lastWindBurst <= cooldownWindow ||
@@ -93,7 +95,7 @@ public abstract class MovementCheck extends Check {
                 time - cache.lastTeleport <= cooldownWindow ||
                 time - cache.lastWorldChange <= stateChangeWindow ||
                 time - cache.lastRespawn <= stateChangeWindow ||
-                time - cache.lastGamemodeChange <= stateChangeWindow;
+                time - cache.lastGamemodeChange <= gameModeChangeWindow;
     }
 
     public boolean isPingGlidingPossible(Player player, PlayerCache cache) {

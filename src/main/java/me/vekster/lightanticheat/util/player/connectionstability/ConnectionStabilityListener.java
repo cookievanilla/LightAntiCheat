@@ -52,7 +52,10 @@ public class ConnectionStabilityListener implements Listener {
     }
 
     public static ConnectionStability getConnectionStability(Player player) {
-        UUID uuid = player.getUniqueId();
+        return getConnectionStability(player.getUniqueId());
+    }
+
+    public static ConnectionStability getConnectionStability(UUID uuid) {
         if (!PLAYERS.containsKey(uuid))
             return ConnectionStability.HIGH;
         List<Integer> list = PLAYERS.get(uuid);
