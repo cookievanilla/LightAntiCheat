@@ -50,8 +50,10 @@ public class LACAsyncPlayerAttackEvent extends Event {
     }
 
     public boolean isEntityAttackCause() {
-        return damageCause == EntityDamageEvent.DamageCause.ENTITY_ATTACK ||
-                damageCause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK;
+        if (damageCause == null)
+            return false;
+        String causeName = damageCause.name();
+        return causeName.equals("ENTITY_ATTACK") || causeName.equals("ENTITY_SWEEP_ATTACK");
     }
 
     public HandlerList getHandlers() {

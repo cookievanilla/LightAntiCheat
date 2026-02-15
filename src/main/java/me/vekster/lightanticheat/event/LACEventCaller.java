@@ -66,24 +66,30 @@ public class LACEventCaller extends LightInjector implements Listener {
     public static void callEntityDamageEvent(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player))
             return;
-        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK &&
-                event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (!isEntityAttackCause(cause))
             return;
         Player player = (Player) event.getDamager();
         if (CheckUtil.isExternalNPC(player))
             return;
         if (CheckUtil.isExternalNPC(event.getEntity()))
             return;
+        int entityId = event.getEntity().getEntityId();
         LACPlayer lacPlayer = LACPlayer.getLacPlayer(player);
         Scheduler.entityThread(player, () -> {
             if (!FoliaUtil.isStable(player))
                 return;
             PLUGIN_MANAGER.callEvent(new LACPlayerAttackEvent(event, player, lacPlayer, event.getEntity()));
             Scheduler.runTaskAsynchronously(true, () -> {
-                PLUGIN_MANAGER.callEvent(new LACAsyncPlayerAttackEvent(player, lacPlayer,
-                        event.getEntity().getEntityId(), event.getCause()));
+                PLUGIN_MANAGER.callEvent(new LACAsyncPlayerAttackEvent(player, lacPlayer, entityId, cause));
             });
         });
+    }
+
+
+    private static boolean isEntityAttackCause(EntityDamageEvent.DamageCause cause) {
+        String causeName = cause.name();
+        return causeName.equals("ENTITY_ATTACK") || causeName.equals("ENTITY_SWEEP_ATTACK");
     }
 
     public static void callBlockPlaceEvents(BlockPlaceEvent event) {
