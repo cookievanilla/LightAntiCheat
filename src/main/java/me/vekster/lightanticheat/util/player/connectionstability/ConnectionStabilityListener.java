@@ -16,6 +16,8 @@ public class ConnectionStabilityListener implements Listener {
 
     private static final ConcurrentHashMap<UUID, List<Integer>> PLAYERS = new ConcurrentHashMap<>();
     private static final long TARGET_WINDOW_MILLIS = 2000L;
+    private static final long MIN_ELAPSED_MILLIS = 500L;
+    private static final long MAX_ELAPSED_MILLIS = 15_000L;
     private static volatile long lastRotationTime = System.currentTimeMillis();
 
     @EventHandler
@@ -43,9 +45,10 @@ public class ConnectionStabilityListener implements Listener {
     }
 
     public static void loadConnectionCalculator() {
+        lastRotationTime = System.currentTimeMillis();
         Scheduler.runTaskTimer(() -> {
             long currentTime = System.currentTimeMillis();
-            long elapsedTime = Math.max(1L, currentTime - lastRotationTime);
+            long elapsedTime = clampElapsedTime(currentTime - lastRotationTime);
             lastRotationTime = currentTime;
 
             Set<UUID> onlinePlayers = new HashSet<>();
@@ -89,6 +92,12 @@ public class ConnectionStabilityListener implements Listener {
         return new ArrayList<>(Arrays.asList(0, 0, 0, 0));
     }
 
+
+    private static long clampElapsedTime(long elapsedTime) {
+        if (elapsedTime <= 0)
+            return MIN_ELAPSED_MILLIS;
+        return Math.min(MAX_ELAPSED_MILLIS, Math.max(MIN_ELAPSED_MILLIS, elapsedTime));
+    }
 
     private static int normalizeToTargetWindow(int value, long elapsedTime) {
         if (elapsedTime <= 0)
