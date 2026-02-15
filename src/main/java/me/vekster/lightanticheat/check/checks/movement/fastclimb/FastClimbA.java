@@ -27,6 +27,8 @@ import java.util.Set;
  * Vertical speed while climbing
  */
 public class FastClimbA extends MovementCheck implements Listener {
+    private static final int ANNOYING_BUG_IDLE_RESET_TICKS = 12;
+
     public FastClimbA() {
         super(CheckName.FASTCLIMB_A);
     }
@@ -60,22 +62,22 @@ public class FastClimbA extends MovementCheck implements Listener {
         PlayerCache cache = lacPlayer.cache;
         Player player = event.getPlayer();
         Buffer buffer = getBuffer(player, true);
+        if (hasTeleportOrRespawnTransition(cache, buffer)) {
+            resetTracking(buffer);
+        }
 
         if (!isCheckAllowed(player, lacPlayer, true)) {
-            buffer.put("climbingEvents", 0);
-            buffer.put("climbFlags", 0);
+            resetTracking(buffer);
             return;
         }
 
         if (!isConditionAllowed(player, lacPlayer, event)) {
-            buffer.put("climbingEvents", 0);
-            buffer.put("climbFlags", 0);
+            resetTracking(buffer);
             return;
         }
 
         if (FloodgateHook.isBedrockPlayer(player, true)) {
-            buffer.put("climbingEvents", 0);
-            buffer.put("climbFlags", 0);
+            resetTracking(buffer);
             return;
         }
 
@@ -85,16 +87,17 @@ public class FastClimbA extends MovementCheck implements Listener {
         if (block == null) return;
         Block downBlock = AsyncUtil.getBlock(player.getLocation().subtract(0, 1, 0));
         if (downBlock == null) return;
-        if (block.getType() != downBlock.getType()) return;
 
         Set<Material> withinMaterials = new HashSet<>();
         withinMaterials.addAll(event.getToWithinMaterials());
         withinMaterials.addAll(event.getFromWithinMaterials());
-        if (withinMaterials.contains(VerUtil.material.get("SCAFFOLDING"))) {
-            buffer.put("climbingEvents", 0);
-            buffer.put("climbFlags", 0);
+
+        if (!isClimbableContext(block, downBlock, withinMaterials, player.getLocation())) {
+            resetTracking(buffer);
             return;
         }
+
+        boolean scaffoldingContext = withinMaterials.contains(VerUtil.material.get("SCAFFOLDING"));
 
         buffer.put("climbingEvents", buffer.getInt("climbingEvents") + 1);
         if (buffer.getInt("climbingEvents") <= 2)
@@ -115,20 +118,47 @@ public class FastClimbA extends MovementCheck implements Listener {
         if (Math.abs(verticalSpeed - 0.5 - 0.1176001) < 0.0175 || Math.abs(verticalSpeed - 0.5 + 0.15001) < 0.0175 ||
                 Math.abs(distanceVertical - 0.5 - 0.1176001) < 0.0175 || Math.abs(distanceVertical - 0.5 + 0.15001) < 0.0175) {
             buffer.put("annoyingBug", true);
+            buffer.put("annoyingBugIdleTicks", 0);
+        } else if (buffer.getBoolean("annoyingBug")) {
+            int annoyingBugIdleTicks = buffer.getInt("annoyingBugIdleTicks") + 1;
+            if (annoyingBugIdleTicks >= ANNOYING_BUG_IDLE_RESET_TICKS) {
+                buffer.put("annoyingBug", false);
+                buffer.put("annoyingBugIdleTicks", 0);
+            } else {
+                buffer.put("annoyingBugIdleTicks", annoyingBugIdleTicks);
+            }
         }
 
         double maxUpSpeed = 0.1176001 * 1.5;
         double maxDownSpeed = -0.15001 * 1.65;
+        boolean vineContext = isVine(block.getType()) || isVine(downBlock.getType()) || withinMaterials.stream().anyMatch(this::isVine);
+        boolean ladderContext = isLadder(block.getType()) || isLadder(downBlock.getType()) || withinMaterials.stream().anyMatch(this::isLadder);
+        boolean edgeTransition = isClimbingEdgeTransition(event.getFrom(), event.getTo(), withinMaterials);
+
         if (VerIdentifier.getVersion().isOlderThan(LACVersion.V1_13)) {
             maxUpSpeed *= 2;
             maxDownSpeed *= 2;
-        } else if (FloodgateHook.isBedrockPlayer(player)) {
+        }
+        if (ladderContext) {
+            maxUpSpeed *= VerIdentifier.getVersion().isOlderThan(LACVersion.V1_13) ? 1.15 : 1.05;
+        }
+        if (vineContext) {
+            maxUpSpeed *= 1.12;
+            maxDownSpeed *= 1.08;
+        }
+        if (scaffoldingContext) {
+            maxUpSpeed *= 1.18;
+            maxDownSpeed *= 1.12;
+        }
+        if (edgeTransition) {
             maxUpSpeed *= 1.2;
-            maxDownSpeed *= 1.2;
+            maxDownSpeed *= 1.15;
         }
 
-        if (!(verticalSpeed > maxUpSpeed || verticalSpeed < maxDownSpeed))
+        if (!(verticalSpeed > maxUpSpeed || verticalSpeed < maxDownSpeed)) {
+            buffer.put("climbFlags", Math.max(0, buffer.getInt("climbFlags") - 1));
             return;
+        }
 
         if (buffer.getBoolean("annoyingBug")) {
             if (Math.abs(verticalSpeed - 0.5 - 0.1176001) < 0.025 || Math.abs(verticalSpeed - 0.5 + 0.15001) < 0.025 ||
@@ -164,6 +194,64 @@ public class FastClimbA extends MovementCheck implements Listener {
                 return;
             callViolationEvent(player, lacPlayer, event);
         });
+    }
+
+    private boolean hasTeleportOrRespawnTransition(PlayerCache cache, Buffer buffer) {
+        if (buffer.getLong("lastProcessedTeleport") != cache.lastTeleport ||
+                buffer.getLong("lastProcessedRespawn") != cache.lastRespawn ||
+                buffer.getLong("lastProcessedWorldChange") != cache.lastWorldChange) {
+            buffer.put("lastProcessedTeleport", cache.lastTeleport);
+            buffer.put("lastProcessedRespawn", cache.lastRespawn);
+            buffer.put("lastProcessedWorldChange", cache.lastWorldChange);
+            return true;
+        }
+        return false;
+    }
+
+    private void resetTracking(Buffer buffer) {
+        buffer.put("climbingEvents", 0);
+        buffer.put("climbFlags", 0);
+        buffer.put("annoyingBug", false);
+        buffer.put("annoyingBugIdleTicks", 0);
+    }
+
+    private boolean isClimbableContext(Block block, Block downBlock, Set<Material> withinMaterials, Location location) {
+        if (!isClimbable(block.getType()) && !isClimbable(downBlock.getType()) && withinMaterials.stream().noneMatch(this::isClimbable)) {
+            return false;
+        }
+
+        Block headBlock = AsyncUtil.getBlock(location.clone().add(0, 1, 0));
+        Block frontBlock = AsyncUtil.getBlock(location.clone().add(location.getDirection().setY(0).normalize().multiply(0.4)));
+        return headBlock != null && (isClimbable(headBlock.getType()) || isClimbable(block.getType()) ||
+                isClimbable(downBlock.getType()) || (frontBlock != null && isClimbable(frontBlock.getType())) ||
+                withinMaterials.stream().anyMatch(this::isClimbable));
+    }
+
+    private boolean isClimbingEdgeTransition(Location from, Location to, Set<Material> withinMaterials) {
+        double verticalDelta = to.getY() - from.getY();
+        if (Math.abs(verticalDelta) < 0.01) {
+            return false;
+        }
+        Block aboveTo = AsyncUtil.getBlock(to.clone().add(0, 1, 0));
+        boolean leavingClimbable = aboveTo == null || !isClimbable(aboveTo.getType());
+        boolean enteringPlatform = Math.abs(to.getY() - Math.floor(to.getY())) < 0.03;
+        return leavingClimbable && enteringPlatform && withinMaterials.stream().anyMatch(this::isClimbable);
+    }
+
+    private boolean isClimbable(Material material) {
+        return isLadder(material) || isVine(material) || material == VerUtil.material.get("SCAFFOLDING");
+    }
+
+    private boolean isLadder(Material material) {
+        return material != null && material.name().contains("LADDER");
+    }
+
+    private boolean isVine(Material material) {
+        if (material == null) {
+            return false;
+        }
+        String name = material.name();
+        return name.equals("VINE") || name.contains("_VINES") || name.contains("_VINE");
     }
 
 }
