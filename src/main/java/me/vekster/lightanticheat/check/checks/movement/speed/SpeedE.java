@@ -13,6 +13,7 @@ import me.vekster.lightanticheat.util.hook.plugin.FloodgateHook;
 import me.vekster.lightanticheat.util.scheduler.Scheduler;
 import me.vekster.lightanticheat.version.VerUtil;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -30,6 +31,9 @@ import java.util.Map;
  * The absolute horizontal, vertical and absolute speed limiter
  */
 public class SpeedE extends MovementCheck implements Listener {
+    private static final double MICRO_BASE_SPRINT_PER_TICK = 0.32D;
+    private static final double SPEED_EFFECT_BONUS_PER_LEVEL = 0.20D;
+
     public SpeedE() {
         super(CheckName.SPEED_E);
     }
@@ -128,7 +132,11 @@ public class SpeedE extends MovementCheck implements Listener {
         if (maxSpeed < 0.0)
             return;
 
-        if (!isMicroTeleportSuspicious(event, lacPlayer, cache, buffer, maxSpeed, horizontalDistance))
+        double microCap = getMicroTeleportKinematicCap(event, cache, lacPlayer, buffer);
+        if (horizontalDistance <= microCap * 1.10)
+            return;
+
+        if (!isMicroTeleportSuspicious(event, lacPlayer, cache, buffer, microCap, horizontalDistance))
             return;
 
         applySetback(player, event, buffer);
@@ -214,7 +222,10 @@ public class SpeedE extends MovementCheck implements Listener {
             return;
 
         double horizontalJump = distanceHorizontal(event.getFrom(), event.getTo());
-        boolean microTeleportSuspicion = isMicroTeleportSuspicious(event, lacPlayer, cache, buffer, maxSpeed, horizontalJump);
+        double microCap = getMicroTeleportKinematicCap(event, cache, lacPlayer, buffer);
+        boolean microTeleportSuspicion = false;
+        if (horizontalJump > microCap * 1.20)
+            microTeleportSuspicion = isMicroTeleportSuspicious(event, lacPlayer, cache, buffer, microCap, horizontalJump);
 
         if (hSpeed < maxSpeed && !microTeleportSuspicion)
             return;
@@ -263,8 +274,59 @@ public class SpeedE extends MovementCheck implements Listener {
         return allowance;
     }
 
+    private double getMicroTeleportKinematicCap(LACAsyncPlayerMoveEvent event, PlayerCache cache,
+                                               LACPlayer lacPlayer, Buffer buffer) {
+        double cap = MICRO_BASE_SPRINT_PER_TICK;
+
+        double walkFactor = Math.max(0.35, event.getPlayer().getWalkSpeed() / 0.2);
+        cap *= walkFactor;
+
+        int speedLevel = Math.max(0, getEffectAmplifier(cache, PotionEffectType.SPEED));
+        if (speedLevel > 0)
+            cap *= 1.0 + SPEED_EFFECT_BONUS_PER_LEVEL * speedLevel;
+
+        Map<String, Double> attributes = getPlayerAttributes(event.getPlayer());
+        double movementBonus = Math.max(
+                getItemStackAttributes(event.getPlayer(), "GENERIC_MOVEMENT_SPEED", "minecraft:movement_speed") +
+                        getItemStackAttributes(event.getPlayer(), "generic.movement_speed"),
+                Math.max(
+                        attributes.getOrDefault("GENERIC_MOVEMENT_SPEED", 0.13) - 0.13,
+                        Math.max(
+                                attributes.getOrDefault("minecraft:movement_speed", 0.13) - 0.13,
+                                attributes.getOrDefault("generic.movement_speed", 0.13) - 0.13
+                        )
+                )
+        );
+        if (movementBonus > 0)
+            cap *= Math.max(1.0, 1.0 + movementBonus * 8.0);
+
+        if (isOnIceSurface(event))
+            cap *= 1.9;
+
+        cap *= getConnectionAllowance(lacPlayer, buffer);
+        cap += isHighPingPlayer(lacPlayer) ? 0.06 : 0.04;
+        return cap;
+    }
+
+    private boolean isOnIceSurface(LACAsyncPlayerMoveEvent event) {
+        for (Block block : event.getToDownBlocks()) {
+            if (block != null && isIce(block.getType()))
+                return true;
+        }
+        return false;
+    }
+
+    private boolean isIce(Material material) {
+        if (material == null)
+            return false;
+        return material == VerUtil.material.get("ICE") ||
+                material == VerUtil.material.get("PACKED_ICE") ||
+                material == VerUtil.material.get("BLUE_ICE") ||
+                material == VerUtil.material.get("FROSTED_ICE");
+    }
+
     private boolean isMicroTeleportSuspicious(LACAsyncPlayerMoveEvent event, LACPlayer lacPlayer, PlayerCache cache,
-                                              Buffer buffer, double normalizedMaxSpeed, double currentJump) {
+                                              Buffer buffer, double microCapPerTick, double currentJump) {
         long currentTime = System.currentTimeMillis();
         long window = isHighPingPlayer(lacPlayer) ? 350 : 220;
         if (currentTime - buffer.getLong("microTeleportWindowStart") > window) {
@@ -275,9 +337,8 @@ public class SpeedE extends MovementCheck implements Listener {
             buffer.put("microTeleportPrevJump", 0.0);
         }
 
-        double walkFactor = Math.max(0.35, event.getPlayer().getWalkSpeed() / 0.2);
-        double allowance = getConnectionAllowance(lacPlayer, buffer);
-        double maxPerTick = normalizedMaxSpeed * walkFactor * allowance;
+        if (currentJump <= microCapPerTick * 1.10)
+            return false;
 
         buffer.put("microTeleportHorizontalSum", buffer.getDouble("microTeleportHorizontalSum") + currentJump);
         buffer.put("microTeleportSamples", buffer.getInt("microTeleportSamples") + 1);
@@ -293,21 +354,21 @@ public class SpeedE extends MovementCheck implements Listener {
                 cache.history.onPacket.location.get(HistoryElement.FIRST),
                 cache.history.onPacket.location.get(HistoryElement.SECOND)
         );
-        double prevExpected = Math.max(prevJump, Math.max(eventPrevStep, packetPrevStep));
+        double expectedPrev = Math.max(prevJump, Math.max(eventPrevStep, packetPrevStep));
 
-        boolean physicsGap = currentJump > maxPerTick * 1.25 &&
-                (prevExpected <= 0.0 || currentJump > prevExpected * 1.9 + 0.12);
+        boolean physicsGap = currentJump > microCapPerTick * 1.45 ||
+                (currentJump > microCapPerTick * 1.30 && expectedPrev <= microCapPerTick * 1.05);
         if (physicsGap)
             buffer.put("microTeleportPhysicsGaps", buffer.getInt("microTeleportPhysicsGaps") + 1);
 
         int samples = buffer.getInt("microTeleportSamples");
-        double horizontalSum = buffer.getDouble("microTeleportHorizontalSum");
         int requiredSamples = isHighPingPlayer(lacPlayer) ? 5 : 4;
         if (samples < requiredSamples)
             return false;
 
+        double horizontalSum = buffer.getDouble("microTeleportHorizontalSum");
         int dynamicBuffer = getConnectionBufferRequirement(lacPlayer, 0);
-        double maxKinematicSum = maxPerTick * samples + 0.35 + dynamicBuffer * 0.12;
+        double maxKinematicSum = microCapPerTick * samples + 0.18 + dynamicBuffer * 0.08;
         return horizontalSum > maxKinematicSum && buffer.getInt("microTeleportPhysicsGaps") >= 2;
     }
 
