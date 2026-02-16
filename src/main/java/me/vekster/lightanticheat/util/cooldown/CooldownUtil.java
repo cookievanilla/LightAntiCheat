@@ -12,11 +12,13 @@ import me.vekster.lightanticheat.util.hook.plugin.FloodgateHook;
 import me.vekster.lightanticheat.util.player.entities.NearbyEntitiesUtil;
 import me.vekster.lightanticheat.util.scheduler.Scheduler;
 import me.vekster.lightanticheat.version.VerPlayer;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -108,24 +110,86 @@ public class CooldownUtil {
         long currentTime = System.currentTimeMillis();
         CooldownElement<Set<Entity>> cooldownElement = cooldown.ALL_ENTITIES;
         if (cooldownElement.result == null || currentTime - cooldownElement.time > 444) {
-            cooldownElement.result = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
-            cooldownElement.time = currentTime;
+            if (!FoliaUtil.isFolia()) {
+                if (Bukkit.isPrimaryThread()) {
+                    cooldownElement.result = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
+                    cooldownElement.time = currentTime;
+                    return cooldownElement.result;
+                }
+
+                CompletableFuture<Set<Entity>> future = new CompletableFuture<>();
+                Scheduler.runTask(true, () -> future.complete(NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player)));
+                try {
+                    cooldownElement.result = future.get(250, TimeUnit.MILLISECONDS);
+                    cooldownElement.time = currentTime;
+                    return cooldownElement.result;
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    return cooldownElement.result != null ? cooldownElement.result : ConcurrentHashMap.newKeySet();
+                }
+            }
+
+            if (FoliaUtil.isOwnedByCurrentRegion(player)) {
+                cooldownElement.result = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
+                cooldownElement.time = currentTime;
+                return cooldownElement.result;
+            }
+
+            FoliaUtil.runTask(player, () -> {
+                cooldownElement.result = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
+                cooldownElement.time = System.currentTimeMillis();
+            });
+            return cooldownElement.result != null ? cooldownElement.result : ConcurrentHashMap.newKeySet();
         }
         return cooldownElement.result;
+    }
+
+    private static Set<CachedEntity> selectNearbyEntitiesSafely(PlayerCooldown cooldown, Player player, Set<Entity> entities,
+                                                                 EntityDistance type, Set<CachedEntity> fallback) {
+        if (!FoliaUtil.isFolia()) {
+            if (Bukkit.isPrimaryThread())
+                return NearbyEntitiesUtil.selectNearbyEntities(player, entities, type);
+
+            CompletableFuture<Set<CachedEntity>> future = new CompletableFuture<>();
+            Scheduler.runTask(true, () -> future.complete(NearbyEntitiesUtil.selectNearbyEntities(player, entities, type)));
+            try {
+                return future.get(250, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                return fallback != null ? fallback : ConcurrentHashMap.newKeySet();
+            }
+        }
+
+        if (FoliaUtil.isOwnedByCurrentRegion(player))
+            return NearbyEntitiesUtil.selectNearbyEntities(player, entities, type);
+
+        FoliaUtil.runTask(player, () -> {
+            Set<Entity> freshEntities = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
+            cooldown.ALL_ENTITIES.result = freshEntities;
+            cooldown.ALL_ENTITIES.time = System.currentTimeMillis();
+
+            Set<CachedEntity> freshNearby = NearbyEntitiesUtil.selectNearbyEntities(player, freshEntities, type);
+            CooldownElement<Set<CachedEntity>> nearbyElement = cooldown.NEARBY_ENTITIES.get(type);
+            if (nearbyElement == null) {
+                cooldown.NEARBY_ENTITIES.put(type, new CooldownElement<>(freshNearby, System.currentTimeMillis()));
+            } else {
+                nearbyElement.result = freshNearby;
+                nearbyElement.time = System.currentTimeMillis();
+            }
+        });
+        return fallback != null ? fallback : ConcurrentHashMap.newKeySet();
     }
 
     public static Set<CachedEntity> getNearbyEntitiesAsync(PlayerCooldown cooldown, Player player, EntityDistance type) {
         long currentTime = System.currentTimeMillis();
         CooldownElement<Set<CachedEntity>> cooldownElement = cooldown.NEARBY_ENTITIES.getOrDefault(type, null);
         if (cooldownElement == null) {
-            Set<CachedEntity> entities = NearbyEntitiesUtil.selectNearbyEntities(player, getAllEntitiesAsync(cooldown, player), type);
+            Set<CachedEntity> entities = selectNearbyEntitiesSafely(cooldown, player, getAllEntitiesAsync(cooldown, player), type, null);
             cooldownElement = new CooldownElement<>(entities, currentTime);
             cooldown.NEARBY_ENTITIES.put(type, cooldownElement);
             return cooldownElement.result;
         }
         if (type == EntityDistance.VERY_NEARBY && currentTime - cooldownElement.time > 30 ||
                 type == EntityDistance.NEARBY && currentTime - cooldownElement.time > 40) {
-            cooldownElement.result = NearbyEntitiesUtil.selectNearbyEntities(player, getAllEntitiesAsync(cooldown, player), type);
+            cooldownElement.result = selectNearbyEntitiesSafely(cooldown, player, getAllEntitiesAsync(cooldown, player), type, cooldownElement.result);
             cooldownElement.time = currentTime;
             return cooldownElement.result;
         }
