@@ -171,6 +171,10 @@ public class CooldownUtil {
 
         long now = System.currentTimeMillis();
         CooldownElement<Set<CachedEntity>> nearbyElement = cooldown.NEARBY_ENTITIES.get(type);
+        long minRefreshDelay = type == EntityDistance.VERY_NEARBY ? 30 : 40;
+        if (nearbyElement != null && now - nearbyElement.time < minRefreshDelay)
+            return fallback != null ? fallback : ConcurrentHashMap.newKeySet();
+
         if (nearbyElement == null) {
             cooldown.NEARBY_ENTITIES.put(type, new CooldownElement<>(fallback != null ? fallback : ConcurrentHashMap.newKeySet(), now));
         } else {
