@@ -134,6 +134,7 @@ public class CooldownUtil {
                 return cooldownElement.result;
             }
 
+            cooldownElement.time = currentTime;
             FoliaUtil.runTask(player, () -> {
                 cooldownElement.result = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
                 cooldownElement.time = System.currentTimeMillis();
@@ -161,19 +162,22 @@ public class CooldownUtil {
         if (FoliaUtil.isOwnedByCurrentRegion(player))
             return NearbyEntitiesUtil.selectNearbyEntities(player, entities, type);
 
+        long now = System.currentTimeMillis();
+        CooldownElement<Set<CachedEntity>> nearbyElement = cooldown.NEARBY_ENTITIES.get(type);
+        if (nearbyElement == null) {
+            cooldown.NEARBY_ENTITIES.put(type, new CooldownElement<>(fallback != null ? fallback : ConcurrentHashMap.newKeySet(), now));
+        } else {
+            nearbyElement.time = now;
+        }
+
         FoliaUtil.runTask(player, () -> {
             Set<Entity> freshEntities = NearbyEntitiesUtil.getAllEntitiesAsyncWithoutCache(player);
             cooldown.ALL_ENTITIES.result = freshEntities;
             cooldown.ALL_ENTITIES.time = System.currentTimeMillis();
 
             Set<CachedEntity> freshNearby = NearbyEntitiesUtil.selectNearbyEntities(player, freshEntities, type);
-            CooldownElement<Set<CachedEntity>> nearbyElement = cooldown.NEARBY_ENTITIES.get(type);
-            if (nearbyElement == null) {
-                cooldown.NEARBY_ENTITIES.put(type, new CooldownElement<>(freshNearby, System.currentTimeMillis()));
-            } else {
-                nearbyElement.result = freshNearby;
-                nearbyElement.time = System.currentTimeMillis();
-            }
+            long refreshTime = System.currentTimeMillis();
+            cooldown.NEARBY_ENTITIES.put(type, new CooldownElement<>(freshNearby, refreshTime));
         });
         return fallback != null ? fallback : ConcurrentHashMap.newKeySet();
     }

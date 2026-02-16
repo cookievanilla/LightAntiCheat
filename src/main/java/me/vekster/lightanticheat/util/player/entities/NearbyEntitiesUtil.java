@@ -20,6 +20,9 @@ import java.util.concurrent.*;
 public class NearbyEntitiesUtil {
 
     public static Set<Entity> getAllEntitiesAsyncWithoutCache(Player player) {
+        if (FoliaUtil.isFolia() && !FoliaUtil.isOwnedByCurrentRegion(player))
+            return ConcurrentHashMap.newKeySet();
+
         if ((VerIdentifier.getVersion().isOlderOrEqualsTo(LACVersion.V1_8) || !PaperUtil.isPaper()) && !FoliaUtil.isFolia()) {
             if (Bukkit.isPrimaryThread()) {
                 try {
@@ -82,6 +85,9 @@ public class NearbyEntitiesUtil {
 
     public static Set<CachedEntity> selectNearbyEntities(Player player, Set<Entity> entities, EntityDistance type) {
         Set<CachedEntity> result = ConcurrentHashMap.newKeySet();
+        if (FoliaUtil.isFolia() && !FoliaUtil.isOwnedByCurrentRegion(player))
+            return result;
+
         Location location = player.getLocation();
         double x = location.getX();
         double y = location.getY();
